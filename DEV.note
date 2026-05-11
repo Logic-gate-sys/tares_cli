@@ -1,0 +1,130 @@
+ :::::::::::::::::::::::::::::::: 📓DEV NOTE ::::::::::::::::::::::::::::::::::::::::::::
+ 🏪 OVERVIEW OF CLI
+ ` TARES_CLI is a cli terminal word scrumble multipler game built with Golang enabling websocket connections 
+ from the terminal. Multiple user connect and and when a user joins, the game manager (another aspect of the game)
+ connects the users to an available room. If no rooms are available current, or no player is online, current user can 
+ connect later or request to wait in line.
+ User can also opt to play singularly , by which the points they earned are half what's earned in a multiplayer mode 
+ There will be a CREED BOARD - of all users and their standings from the first to the the 100th
+ #Scores users accumulate is the determinant of the position on the BOARD
+ # Scores are measures of difficulty of level: 
+   - Player modes have a base score + a force-multiplier- (a percentage of players 
+   in room where score was obtained - *(n-1))
+ ` 
+ BUILD PHILOSOPHY:
+ - Server first, completely ---> Test with wscat ---> Client second
+ # Depending on the level, isolation allows for targeted 
+ 
+ HIGH LEVEL CONCEPTUALISATION OF WHAT MUST BE DONE AT THE END OF EACH DAY
+  - Day 1 → Foundation          (Project structure + WebSocket server + message types)
+  - Day 2 → Game Brain          (Rooms + matchmaking + shared state)
+  - Day 3 → Game Logic          (Word validation + scoring + timer)
+  - Day 4 → The Client          (CLI connection + terminal renderer)
+  - Day 5 → Polish + REST API   (Stats + leaderboard + demo-ready)
+
+  -------------- DETAILED DAY ACTIVITIES ------------------------------
+   - DAY 1
+     Morning (2-3 hours) — Concepts + Setup
+       - Understand Go modules (go.mod) vs Node's package.json
+       - Understand Go's package system (internal/ and why it exists)
+       - Project scaffolding
+       - go.mod initialization
+       - Install dependencies (gorilla/websocket)
+       - Understand what gorilla/websocket actually does vs raw Go net/http
+
+     Afternoon (2-3 hours) — Build
+       - shared/messages/types.go    ← every message type defined here
+       - server/internal/player/message.go  ← reading/writing messages
+       - server/internal/player/client.go   ← one goroutine per connection
+       - server/main.go              ← HTTP server + WebSocket upgrade
+
+   - DAY 2
+       Morning (2-3 hours) — Concepts
+       - What a race condition actually looks like in practice
+         (we'll trigger one intentionally so you see it crash)
+       - sync.Mutex — when and why
+       - Go maps and why map[string]int is not safe concurrently
+       - The matchmaking pattern (a waiting queue)
+     
+      Afternoon (2-3 hours) — Build
+       - server/internal/game/room.go      ← Room struct + mutex
+       - server/internal/game/manager.go   ← RoomManager + matchmaking queue
+       - Wire manager into player connection handler
+       - Player joins → goes into waiting queue
+       - Second player joins → both pulled into a room
+       - Both receive "start" message with letters and opponent name
+
+   - DAY 3
+      Morning (2-3 hours) — Concepts + Word Validation
+       - Embedding files in Go binary (the dictionary)
+       - Why word validation has a race condition 
+         (two players, same word, same millisecond)
+       - How context.Context works and why Go uses it everywhere
+       - Goroutine lifecycle — what a goroutine leak is
+       
+      Aternoon (2-3 hours) — Build
+       - data/words.txt              ← dictionary file
+       - server/internal/game/validator.go  ← word validation logic
+         - Is it a real word?
+         - Can these letters make this word?
+         - Was it already used by either player?
+       - server/internal/game/room.go (expand)
+         - Score tracking
+         - Used words set (mutex protected)
+         - Broadcast to both players
+       - server/internal/game/timer.go
+         - 60 second countdown goroutine
+         - Sends time updates every 10 seconds
+         - Ends game when timer hits zero
+
+    - DAY 4
+       Morning (2-3 hours) — Concepts + Setup
+         - The Elm Architecture (Model, Update, View) — bubbletea's model
+         - How bubbletea's event loop works
+         - WebSocket client in Go (same library, opposite direction)
+         - How client state machine works:
+            connecting → waiting → playing → game over
+       
+       Afternoon (2-3 hours) — Build
+         - client/internal/connection.go
+           - Connect to server via WebSocket
+           - Receive messages → convert to bubbletea events
+           - Send messages when player submits word
+         - client/internal/state.go
+           - Client-side game state (scores, letters, words, timer)
+           - State transitions based on server messages
+         - client/internal/renderer.go
+           - The terminal UI layout
+           - Letters display
+           - Score comparison
+           - Word input field
+           - Timer display
+         - client/main.go
+           - Parse --name and --server flags
+           - Wire connection + bubbletea together
+    - DAY 5
+         Morning (2-3 hours) — REST API + Stats
+           - server/internal/stats/tracker.go
+             - In-memory stats (mutex protected)
+             - Track: games played, words submitted, top scores
+             - Updates after every game ends
+           - server/internal/api/routes.go
+           - server/internal/api/handlers.go
+           Endpoints:
+             GET /health          → server status, active games count
+             GET /stats           → total games, words played today
+             GET /leaderboard     → top 10 scores with player names
+           Test all three with curl
+           
+           Aternoon (2-3 hours) — Polish + Documentation
+           - Error handling audit (what if player sends malformed JSON?)
+           - Graceful server shutdown (SIGTERM handling)
+           - Makefile targets:
+               make server   → builds and runs server
+               make client   → builds and runs client
+               make both     → runs server + two clients (demo mode)
+           - README with:
+               Architecture diagram
+               How to run
+               What Go concepts it demonstrates
+               Message protocol documentation
