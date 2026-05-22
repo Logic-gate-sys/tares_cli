@@ -1,14 +1,13 @@
 package game
 
 import (
-	// "crypto/rand"
-	"errors"
-	"math/rand"
+	"fmt"
+	"math/rand/v2"
 	"slices"
 )
 
 
-type Letters struct {
+type GameLetters struct {
 	Round   int `json:"round"`
 	Letters  []int 	`json:"_"`
 }
@@ -19,43 +18,40 @@ This package is responsible for these:
  3.
 */
 
-func(l *Letters) GenerateLetter() string {
-	letters := [26]string{
-	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
-	"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-   }
-   letter := letters[rand.Intn(len(letters))]
-   return letter 
-}	
+type LettersInterface interface{
+	GroupLetters()([]string, error)
+}
 
-
-func (l *Letters)  GroupLetters(seed int) ([]string, error) {
-	if seed <3{
-		return nil, errors.New("Invalid seed, seed must be greater  or equal to 3")
-	}
-	generated := []string {}
-	isValid := false 
+func (l *GameLetters)  GroupLetters() ([]string, error) {
+	var generated []string
+	var notValid bool = true
 
 	// try until we have valid letters 
-    for isValid {
+	seed := rand.N(45-3)+3
+
+    for notValid {
 	 generated =[]string{}
-	// loop to generate words
+	// loop to generate letters
      for i := 0; i<=seed; i++{
          lett := l.GenerateLetter()
 		 // append generated letters
 		 generated = append(generated, lett)
 	}
 	 //validate that generated works contain atleast one vowel
-	 isValid = l.lettersAreValid(generated)
+	 isValid := l.lettersAreValid(generated)
 	 if !isValid {
-		return nil, errors.New("Generated Letters don't meet the requirements") 
+		fmt.Println("Generated Letters don't meet the requirements, trying again") 
 	}
+	// not valid is false
+	 notValid = false 
 	}
+
     return generated, nil 
 }
 
 
-func(l * Letters) lettersAreValid(gn []string ) (bool){
+// VALIDATION 
+func(l * GameLetters) lettersAreValid(gn []string ) (bool){
 	vowel_count := 0 
     // vowels 
 	vowels := []string{"A", "E","I","0","U"}
@@ -65,5 +61,15 @@ func(l * Letters) lettersAreValid(gn []string ) (bool){
 	   }
 	}
     // return final values 
-	return vowel_count>0
+	return vowel_count > 1
 }
+
+//LETTER GENERATION 
+func(l *GameLetters) GenerateLetter() string {
+	letters := [26]string{
+	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
+	"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+   }
+   letter := letters[rand.IntN(len(letters))]
+   return letter 
+}	

@@ -34,12 +34,20 @@ func main(){
 //  }	
 
 
+// Letter generation test 
+  game_letters := game.GameLetters{}
+  letter, err := game_letters.GroupLetters()
+  if err !=nil{
+	fmt.Println("Error: ", err)
+	return 
+  }
+  fmt.Println("Generated letter group: ", len(letter))
  // reading file with the game read method 
  timeStarted := time.Now()
 
-isValid, err := game.ValidateWord("Jane", "server/dictionary/game_words.txt")
+isValid, err := game.ValidateWord("june", "server/dictionary/game_words.txt")
 if err !=nil{
-		fmt.Println("An error occured", err)
+		fmt.Println("An error occured:  ", err)
 		return 
 	}
 	fmt.Println("Word is valid: ----->", isValid)
