@@ -33,3 +33,40 @@
 │   │  REST API: /stats /leaderboard          │           │
 │   └─────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────┘
+
+# How the components should interract together 
+┌─────────────────────────────────────────────────────────────┐
+│                     TARES SERVER                            │
+│                                                             │
+│  ┌─────────────────────┐    ┌─────────────────────────┐     │
+│  │     HTTP REST API   │    │    WebSocket Server      │    │
+│  │                     │    │                          │    │
+│  │  POST /auth/register│    │  ws://host/game          │    │
+│  │  POST /auth/login   │    │                          │    │
+│  │  GET  /leaderboard  │    │  - real-time game state  │    │
+│  │  GET  /stats/:name  │    │  - word submissions      │    │
+│  │                     │    │  - score updates         │    │
+│  └──────────┬──────────┘    └───────────┬──────────────┘    │
+│             │                           │                   │
+│             └─────────────┬─────────────┘                   │
+│                           │                                 │
+│                           ▼                                 │
+│             ┌─────────────────────────┐                     │
+│             │      Game Engine        │                     │
+│             │                         │                     │
+│             │  - Room management      │                     │
+│             │  - Word validation      │                     │
+│             │  - Score calculation    │                     │
+│             │  - Timer management     │                     │
+│             │  - Matchmaking          │                     │
+│             └─────────────┬───────────┘                     │
+│                           │                                 │
+│                           ▼                                 │
+│                  ┌─────────────────┐                        │
+│                  │    Database     │                        │
+│                  │                 │                        │
+│                  │  - Users        │                        │
+│                  │  - Game history │                        │
+│                  │  - Leaderboard  │                        │
+│                  └─────────────────┘                        │
+└─────────────────────────────────────────────────────────────┘

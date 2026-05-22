@@ -128,3 +128,39 @@
                How to run
                What Go concepts it demonstrates
                Message protocol documentation
+
+
+
+
+
+
+├── go.mod
+├── go.sum
+├── Makefile
+│
+├── server/                    ← the game server
+│   ├── main.go
+│   └── internal/
+│       ├── game/
+│       │   ├── room.go
+│       │   ├── manager.go
+│       │   ├── validator.go
+│       │   └── timer.go
+│       ├── player/
+│       │   ├── client.go
+│       │   └── message.go
+│       └── api/
+│           ├── routes.go
+│           └── handlers.go
+│
+├── client/                    ← the CLI client
+│   ├── main.go
+│   └── internal/
+│       ├── connection.go      ← WebSocket connection to server
+│       ├── renderer.go        ← draws the terminal UI
+│       ├── input.go           ← reads keyboard input
+│       └── state.go           ← tracks local game state
+│
+└── shared/                    ← shared between server and client
+    └── messages/
+        └── types.go           ← message structs both sides use
