@@ -36,3 +36,4 @@ func ReadIdParam (r *http.Request) (int64, error){
 	 }
 	 return id, nil
 }
+

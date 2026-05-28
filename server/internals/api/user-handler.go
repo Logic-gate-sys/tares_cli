@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/store"
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/utils"
-)
 
+	"github.com/logic-gate-sys/tares-cli/server/internals/store"
+	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
+)
 
 
 type UserHandler struct{

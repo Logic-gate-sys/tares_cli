@@ -4,17 +4,17 @@ import (
 	"database/sql"
 	"log"
 	"os"
-
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/api"
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/store"
-	"githhub.com/logic-gate-sys/tares-cli/server/migrations"
+	"github.com/logic-gate-sys/tares-cli/server/internals/api"
+	"github.com/logic-gate-sys/tares-cli/server/internals/store"
+	"github.com/logic-gate-sys/tares-cli/server/migrations"
 )
+
 
 
 type Application struct{
 	Logger *log.Logger
 	DB   *sql.DB
-	UserHandler  *api.UserHandler
+	UserHandler *api.UserHandler
 }
 
 func NewApplication()(*Application, error){

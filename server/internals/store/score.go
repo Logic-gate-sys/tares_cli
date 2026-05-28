@@ -1,5 +1,35 @@
--- +goose up 
--- +goose StatementBegin
+package store
+
+
+type GameScore struct {
+	UserID  string `json:"user_id"`
+	GameID  string `json:"game_id"`
+	Score  float32 `json:"score"`
+}
+
+type PostgresScoreStore interface{
+	CreateOrUpdateUserScore(vals ...interface{})(error, Scores)
+}
+
+func  NewGameScore(userId string, gameId string, score float32 ) *GameScore {
+	return &GameScore{ 
+		UserID:userId ,
+		GameID: gameId,
+		Score: score,
+	}
+}
+func (gs *GameScore) CreateOrUpdateUserScore(vals ...interface{}) (error){
+    // does score exist for user/game 
+	query :=`SELECT * FROM game_scores 
+	         WHERE user_id=$1 AND game_id=$2
+			 RETURNING user_id, game_id, score 
+			 `
+    
+}
+
+/*
+
+
 CREATE TABLE room IF NOT EXISTS (
     id SERIAL PRIMARY KEY,
     name VARCHAR(225) NOT NULL , -- NAME OF GAME ROOM 
@@ -31,13 +61,5 @@ CREATE TABLE game_score IF NOT EXISTS (
     score  INT DEFAULT 0
     PRIMARY KEY (user_id, game_id)
 )
--- +goose StatementEnd
 
--- +goose down
--- +goose StatementBegin
-DROP TABLE game_score;
-DROP TABLE games ;
-DROP TABLE rooms ;
-DROP TABLE game_room
-
--- +goose StatementEnd
+*/

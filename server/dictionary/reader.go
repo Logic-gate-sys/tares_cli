@@ -4,21 +4,22 @@ import (
 	// "bufio"
 	"fmt"
 	"time"
-	// "os"
+	"os"
 
 	"github.com/logic-gate-sys/tares-cli/server/internals/game"
 )
 
 func main(){
-// 	data, err := os.ReadFile("server/dictionary/game_words.txt")
-// 	if err !=nil{
-// 		fmt.Println("Failed to read entire file", err)
-// 		return 
-// 	}
+	start :=time.Now()
+	data, err := os.ReadFile("server/dictionary/game_words.txt")
+	if err !=nil{
+		fmt.Println("Failed to read entire file", err)
+		return 
+	}
 
-//   fmt.Println(string(data) )
+  fmt.Println(string(data), "Time spent without Go routines: ", time.Since(start) )
 
-//using scanner and bufio 
+// using scanner and bufio 
 // file , err := os.Open("server/dictionary/game_words.txt")
 // if err !=nil{
 // 	fmt.Println("Failed to open file ", err)
@@ -51,7 +52,7 @@ if err !=nil{
 		return 
 	}
 	fmt.Println("Word is valid: ----->", isValid)
-	fmt.Println("Total time spent : ", time.Since(timeStarted))
+	fmt.Println("Time spent with Go routines", time.Since(timeStarted))
 
 }
 

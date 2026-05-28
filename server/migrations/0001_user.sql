@@ -11,9 +11,6 @@ CREATE TABLE
     users IF NOT EXISTS (
         id BIGSERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
-        f_name VARCHAR(225) NOT NULL,
-        m_name VARCHAR(255),
-        l_name VARCHAR(255) NOT NULL,
         username VARCHAR(255) NOT NULL,
         p_level player_level DEFAULT "beginner",
         bio TEXT,

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/app"
-	"githhub.com/logic-gate-sys/tares-cli/server/internals/route"
+	"github.com/logic-gate-sys/tares-cli/server/internals/app"
+	"github.com/logic-gate-sys/tares-cli/server/internals/route"
 )
+
 
 func main(){
 	// port value
@@ -38,5 +39,5 @@ func main(){
     if err !=nil{
 		app.Logger.Fatal("Server failed to start properly")
 	}
-
 }
+
