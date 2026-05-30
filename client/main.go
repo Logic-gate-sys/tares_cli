@@ -10,14 +10,6 @@ import (
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
-type userClient struct {
-	name string 
-	id   string 
-	toSend  chan events.PlayerAction
-	received chan events.GameStateBroadcast
-
-}
-
 
 func main() {
 	// connect client to socker server

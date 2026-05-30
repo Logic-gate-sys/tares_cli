@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	"log"
 	"os"
+
 	"github.com/logic-gate-sys/tares-cli/server/internals/api"
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/migrations"
 )
-
-
 
 type Application struct{
 	Logger *log.Logger
@@ -19,7 +18,7 @@ type Application struct{
 
 func NewApplication()(*Application, error){
    //logger 
-   logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+   logger := log.New(os.Stdout, " ", log.Ldate|log.Ltime)
    // db 
    db,err := store.Open()
 
@@ -35,9 +34,12 @@ func NewApplication()(*Application, error){
    // all handlers
    userHandler := api.NewUserHandler(userStore, logger)
 
+
    //application 
-   app := &Application{Logger: logger, DB: db, UserHandler:userHandler }
-
+   app := &Application{
+      Logger: logger, 
+      DB: db, 
+      UserHandler:userHandler,
+   }
    return app, nil
-
 }

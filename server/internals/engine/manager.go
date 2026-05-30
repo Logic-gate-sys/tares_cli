@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
-
 /*
   Phelosophy of the game: "Hit db less, worry less about db letency"
   Data base is updated after the game:
