@@ -1,5 +1,7 @@
 package store
 
+import "database/sql"
+
 
 type GameScore struct {
 	UserID  string `json:"user_id"`
@@ -7,10 +9,13 @@ type GameScore struct {
 	Score  float32 `json:"score"`
 }
 
-type PostgresScoreStore interface{
-	CreateOrUpdateUserScore(vals ...interface{})(error, Scores)
+type PostgresScoreStore struct{
+	db     *sql.DB
 }
 
+type GameStore interface {
+    GetUserScoreByGame(vals ...interface{})(error, Scores)
+}
 func  NewGameScore(userId string, gameId string, score float32 ) *GameScore {
 	return &GameScore{ 
 		UserID:userId ,
@@ -18,15 +23,20 @@ func  NewGameScore(userId string, gameId string, score float32 ) *GameScore {
 		Score: score,
 	}
 }
-func (gs *GameScore) CreateOrUpdateUserScore(vals ...interface{}) (error){
+
+func (pss *PostgresScoreStore) GetUserScoreByGame(userId string, game_id string) (*GameScore, error){
+    score := GameScore{}
     // does score exist for user/game 
 	query :=`SELECT * FROM game_scores 
 	         WHERE user_id=$1 AND game_id=$2
 			 RETURNING user_id, game_id, score 
-			 `
-    
+	         `
+    err := pss.db.QueryRow(query, userId, game_id).Scan(&score.UserID,&score.GameID,&score.Score)
+    if err !=nil{
+        return nil , err
+    }
+    return &score, nil
 }
-
 /*
 
 

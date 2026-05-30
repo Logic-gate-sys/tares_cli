@@ -1,6 +1,8 @@
 package ws
 
 import (
+	"fmt"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
@@ -9,44 +11,42 @@ import (
 type client struct {
 	socket *websocket.Conn // socket connection by which the client communicates
 	inboundMessage chan events.GameStateBroadcast // things coming from server to client
-	outboundMessage chan events.PlayerAction // things client sent to server 
-	room *room
+	room *Room
 }
 
-type Message struct {
-	Answer   string `json:"answer"`
-	RoomID    string `json:"room_id"`
-	Username  string `json:"username"`
-	UserID    string `json:"user_id,omitempty"`
-	System    bool   `json:"system"`
-	Timestamp string `json:"timestamp,omitempty"`
+
+
+// Take message in clients inbound channel and shovel it down to connected client e.g browser
+func (c *client) writeToClientPump() {
+	//defer closing socket 
+	defer func(){
+		c.socket.Close()
+	}()
+     // sent all inbound events through socket
+     for inboundEvents := range c.inboundMessage{
+        if err := c.socket.WriteJSON(inboundEvents);
+	    err !=nil{
+		fmt.Printf("Failed to send data to client :%v", err)
+		break // 
+	   }
+	 }
 }
 
-func (c *client) readWord() {
-	// take all data in the client's socket
-	// give it to the forward channel of room to be read 
+// Read message from client e.g browser and sent it to inBoundEvents channel of room
+func (c *client) readFromClientPump() {
+	// defer close 
+	defer func(){
+		c.socket.Close()
+	}()
+	// run an infinit loop at a
 	for {
-		if _, data, err := c.socket.ReadMessage(); 
-		err ==nil{
-               c.room.forward <- data
-		}else {
+		var action events.PlayerAction 
+		if err := c.socket.ReadJSON(&action);
+		err !=nil{
+			fmt.Printf("Failed to read message from browser : %v", err)
 			break 
 		}
+	    // put read json/struct on outbound channel
+		c.room.inBoundEvents <- action
 	}
-	// close socket
-	c.socket.Close()
-}
-
-// write to room 
-func (c *client) writeWord() {
-	// for all sent word messages in the send channel
-	// unless an error occurs send them to room 
-	for messageWord := range c.send{
-		if err := c.socket.WriteMessage(websocket.TextMessage, messageWord);
-		 err !=nil{
-            break 
-		}
-	}
-	// after all close client socket
-	c.socket.Close()
 }

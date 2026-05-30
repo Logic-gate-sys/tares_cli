@@ -9,12 +9,12 @@ import (
 
 type roomManager struct {
    sync.RWMutex
-   rooms  map[string]*room
+   rooms  map[string]*Room
 }
 
 func NewRoomManager()*roomManager{
 	return &roomManager{
-		rooms: make( map[string]*room),
+		rooms: make( map[string]*Room),
 	}
 }
 
@@ -29,13 +29,12 @@ func(rm *roomManager) HandleWS(w http.ResponseWriter,req *http.Request){
   // query parameters E.g : http//localhost:8081/room/:23?name=Junoo&capacity=5
   nQuery := queryString.Get("name")
   cQuery := queryString.Get("capacity")
-
   // lock manager mutex 
   rm.Lock()
   targetRoom, exists := rm.rooms[roomId]
   // in a situation where room is full 
   if targetRoom.isFull(){
-     http.Error(w, "Room is full",http.StatusForbidden )
+     http.Error(w, "Room is full", http.StatusForbidden )
      return 
   }
   // if room does no exist , create one 

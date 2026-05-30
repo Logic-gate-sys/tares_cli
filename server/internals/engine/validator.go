@@ -8,20 +8,21 @@ import (
 	"sync"
 )
 
-/*
-   - Validator performs these functions in the engine
-   1. Takes and entered word and compare for it's equivalence in dictionary
-      - Have multiple go routines validating the word - read from dict,
-	  - Once a Go routine finds a word, the others should stop
-	  - If no words is found, the word is not correct
-*/
+// This spawns 5 goroutines each scanning job channels
+// 1. 1 Go routine scan all words in text file and put the text in a job channel 
+// 2. 5 Go routines scan the job channel comparing each text with 'word' 
+// 3. Found channel signals an early return if word is found by any go routine scanning job channel
+// 4  quit channel signals a final withrawal by the last job scanner 
 
 func ValidateWord(word string, fileName string) (bool, error) {
+	// open file
 	file, err := os.Open(fileName)
 	if err != nil {
 		return false, fmt.Errorf("Failed to open text file. Error: %v", err)
 	}
+	// close file eventually
 	defer file.Close()
+	
 	// channels for cordiantion
 	jobs := make(chan string, 100) // streams text to all workers
 	found := make(chan bool, 1)    // signifies word found or not
@@ -32,13 +33,16 @@ func ValidateWord(word string, fileName string) (bool, error) {
 	//spawn five workers
 	numWorkers := 5
 	for i := 0; i < numWorkers; i++ {
+		// wait group for current worker
 		wg.Add(1)
+		// a go routine for current worker 
 		go func() {
+			// Eventually remove this work from waitgroup: Add(-1)
 			defer wg.Done()
 			for current_word := range jobs {
 				// has another worker signaled a shutdown
 				select {
-					case <-quit :
+					case <- quit :
 						return
 					default:
 				}
@@ -62,25 +66,26 @@ func ValidateWord(word string, fileName string) (bool, error) {
 			select {
 			case <-quit:
 				break
-			case jobs <- scanner.Text():
+			case jobs  <- scanner.Text():
 			}
 		}
 		close(jobs) // peacefully close job channel
 
 	}()
 
-	// waait for all workers in seperate go routines to finish
+	// wait for all workers in seperate go routines to finish
 	waitDone := make(chan struct{})
 	go func() {
+		// wait for all routines 
 		wg.Wait()
 		close(waitDone)
 	}()
 	//Final check
 	select {
-		case <-found:
+		case <- found:
 			return true, nil
 		// case <-waitDone:
-		case <-waitDone:
+		case <- waitDone:
 			return false, nil
 	}
 

@@ -3,9 +3,11 @@ package ws
 import (
 	"log"
 	"net/http"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/engine"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
+	"github.com/logic-gate-sys/tares-cli/server/internals/timer"
 )
 
 /*
@@ -17,43 +19,46 @@ import (
 	         like a client that's not only or who is not able to receive message
 	# We make this so that onces the messages gets send down the client.send channel, our client's write method will pick it up and write to the client through the socket
 */
-type RoomOption func(*room)
+type RoomOption func(*Room)
 
-type room struct {
+type Room struct {
 	id     string   // room unique id 
 	name   string  // room name
 	capacity  int  // number of active-players 
 	inBoundEvents chan events.PlayerAction // events client sent to server room 
 	broadCastsEvents  chan events.GameStateBroadcast // events to be broadcasted to clients
-	// forward holds the generated letter slice to be sent 
-	// to all clients
-	forward chan []byte
 	join    chan *client // for a client request to join a room 
 	leave   chan *client // for a client requesting to leave a room 
 	clients map[*client]bool // holds all clients currently in a room 
 	gameEngine *engine.Game //reference to game engine
+	timer    timer.GameClock
+	startGame  chan bool 
+	stopGame   chan bool 
+	pauseGame  chan bool  
 }
 
 func WithName(name string) RoomOption{
-	return func(r *room){
+	return func(r *Room){
 		r.name = name 
 	}
 }
 
 func WithCapacity(capacity int) RoomOption{
-	return func(r *room){
+	return func(r *Room){
 		r.capacity = capacity
 	}
 }
 
-func NewRoom(opts ...RoomOption) *room {
-  r := &room{
+func NewRoom(opts ...RoomOption) *Room {
+  r := &Room{
 	name: "Unnamed",
 	capacity: 10, // by default , 10 max capacity
-	forward: make(chan []byte) ,
 	join:  make(chan *client),
 	leave: make(chan *client),
 	clients: make(map[*client]bool),
+	inBoundEvents: make(chan events.PlayerAction),
+	broadCastsEvents: make(chan events.GameStateBroadcast),
+	timer: *timer.NewGameClock(),
    }
    // loop and update any provided options in room 
    for _, roomOpt := range opts{
@@ -65,11 +70,25 @@ func NewRoom(opts ...RoomOption) *room {
 }
 
 
-// Run is the core loop for delivery messages via channel to clients.
+// Run is the core loop for messages delivery via channel/ clients.
 // Also takes message from client to engine etc
-func (r *room) Run(){
+func (r *Room) Run(){
    // respond to leave or join room request 
    for {
+	//start game 
+	select {
+		case <- r.startGame:
+		    // run the game engine in routine
+			go r.gameEngine.Run() // 1 Single routine -handling game maths 
+		case <- r.stopGame:
+			r.timer.Stop()
+
+		case <- r.pauseGame:
+			r.timer.Pause()
+
+    	default :
+			// do nothin 
+	      }
 	select {
 		// if a client wants to join room
 		case client := <-r.join:
@@ -84,7 +103,7 @@ func (r *room) Run(){
 
 		// if a game message comes in through to the broadcastEvents channel
 		// game message can be letters generated for round, round winner announcement, 
-		// or even game over announcement 
+		// or even game over announcement : Engine will sent this kind of message
 		case broadcastMsg := <- r.broadCastsEvents : 
 			// brooad cast the message to all clients 
 			for client := range r.clients{
@@ -92,7 +111,7 @@ func (r *room) Run(){
                 // trying sending to client to validate , they're still available 
 				case client.inboundMessage <- broadcastMsg:
 					// send message to client
-					log.Printf("Sent message to client")
+					log.Printf("Sent message to client, waiting for browser to pick it up")
 			    // if not , client is definately not available, so :
 				//close their send channels and remove them from the room 
 				default :
@@ -107,24 +126,19 @@ func (r *room) Run(){
 	select {
 	case action := <- r.inBoundEvents:
 		switch action.Action {
-		case "SEND_WORD":
-			score , err := r.gameEngine.ScoreWord(action.Value, action.UserID, engine.Easy )
-			if err == nil{
-				// go routine to update player score
-				go r.gameEngine.UpdatePlayerScore(action.UserID, score )
-			}
-        case "PAUSE_GAME":
-			r.gameEngine.PauseTimer()
+			case "SEND_WORD":
+				score , err := r.gameEngine.ScoreWord(action.Value, action.UserID, engine.Easy )
+				if err == nil{
+					// go routine to update player score
+					go r.gameEngine.UpdatePlayerScore(action.UserID, score )
+				}
+        	case "PAUSE_GAME":
+				r.timer.Pause()
+			case "STOP_GAME":
+				r.timer.Stop()
 		}
 	   // generate and broadcast stats
-	   r.broadCastsEvents <- r.gameEngine.GenerateStatsReport(r.id, r.name)
-
-     // when messages come to broadcast channel 
-	case stateSnapShot := <- r.broadCastsEvents :
-		// send state snapshot to all clients 
-		for client := range r.clients{
-			client.inboundMessage <- stateSnapShot
-		}
+	   r.broadCastsEvents <- r.gameEngine.GenerateStatsReport()
 	  }
    }
 }
@@ -141,21 +155,21 @@ var upgrader = &websocket.Upgrader{
 
 //  This func is a method on the room struct.
 //  Game room is asserted full if the number of clients connected are same as capacity
-func (rm *room) isFull() bool {
+func (rm *Room) isFull() bool {
 	return len(rm.clients) == int(rm.capacity)
 }
 
 // turn room into http handler by implementing the ServeHTTP func from http.HandlerFunc
-func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request){
+func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request){
 	// upgrade http request 
 	socket, err := upgrader.Upgrade(w, req, nil)
 	if err !=nil{
 		log.Fatal("Socket upgrade failed ")
 	}
-
+    // Client 
 	client := &client{
 		socket: socket,
-		send: make(chan []byte, messageBufferSize),
+		inboundMessage:  make(chan events.GameStateBroadcast, messageBufferSize),
 		room: r,
 	}
 	// defer leave
@@ -164,9 +178,13 @@ func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request){
 	}()
     // join room 
 	r.join <- client 
-	// client write should be in a go routine 
-	go client.writeWord()
-	// read with client and write 
-	 client.readWord()
+	// client write  
+	go client.writeToClientPump()
+	// client read
+	go client.readFromClientPump()
+
+	
+	// try starting game 
+    r.startGame <- true 
 }
 

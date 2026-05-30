@@ -8,7 +8,7 @@ import (
  
 // structs and interfaces
 type Game struct {
-	ID 	int `json:"id"`
+	ID 	int 
 	Players []Player
 	Letters []LetterSet
 	ActiveRoom ActiveRoom

@@ -22,6 +22,8 @@ type LettersInterface interface{
 	GroupLetters()([]string, error)
 }
 
+// This groups letters generated. It first regenerate until all conditions for scramble letters.
+// Returns the []string of letters 
 func (l *GameLetters)  GroupLetters() ([]string, error) {
 	var generated []string
 	var notValid bool = true
@@ -50,7 +52,7 @@ func (l *GameLetters)  GroupLetters() ([]string, error) {
 }
 
 
-// VALIDATION 
+// This checks if all requirements are fulfiled for the generate letters 
 func(l * GameLetters) lettersAreValid(gn []string ) (bool){
 	vowel_count := 0 
     // vowels 
@@ -64,7 +66,7 @@ func(l * GameLetters) lettersAreValid(gn []string ) (bool){
 	return vowel_count > 1
 }
 
-//LETTER GENERATION 
+// Generates a random slice of letters spaming from 3 - 30  
 func(l *GameLetters) GenerateLetter() string {
 	letters := [26]string{
 	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
