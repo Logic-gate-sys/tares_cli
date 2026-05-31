@@ -12,13 +12,13 @@ import (
 */
 
 type GameEngineInterface interface {
-	ScoreWord(word string, userId string, diff Difficulty) (float32, error)
+	ScoreWord(word string, UserId string, diff Difficulty) (float32, error)
 	ManageTimer() 
 }
 const dictionaryFile = "server/dictionary/game_words.txt"
 
 // This func validates user's submitted word exist and applies the appropriate score 
-func (g *Game)   ScoreWord(word string, userId string, diff Difficulty) (float32, error){
+func (g *Game)   ScoreWord(word string, UserId string, diff Difficulty) (float32, error){
 	 var baseScore int = 0 
     // validate word 
 	 isValid, err := ValidateWord(word, dictionaryFile )
@@ -55,7 +55,7 @@ func (g *Game) Tick(state *events.GameState) (events.GameStateBroadcast, bool){
 	if state.TimeLeft <= 0 {
 		// Rule evaluation: Time is up!
 		return events.GameStateBroadcast{
-			RoomID:  state.RoomID,
+			RoomId:  state.RoomId,
 			Round: state.Round,
 			Status: state.ActiveStatus,
 			TimeLeft: state.TimeLeft,
@@ -65,7 +65,7 @@ func (g *Game) Tick(state *events.GameState) (events.GameStateBroadcast, bool){
 	}
     // time up 
 	return events.GameStateBroadcast{
-			RoomID:  state.RoomID,
+			RoomId:  state.RoomId,
 			Round: state.Round,
 			Status: state.ActiveStatus,
 			TimeLeft: state.TimeLeft,

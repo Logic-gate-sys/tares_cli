@@ -58,6 +58,9 @@ func NewRoom(opts ...RoomOption) *Room {
 	clients: make(map[*client]bool),
 	inBoundEvents: make(chan events.PlayerAction),
 	broadCastsEvents: make(chan events.GameStateBroadcast),
+	startGame: make(chan bool),
+	pauseGame: make(chan bool),
+	stopGame: make(chan bool),
 	timer: *timer.NewGameClock(),
    }
    // loop and update any provided options in room 
@@ -93,13 +96,32 @@ func (r *Room) Run(){
 		// if a client wants to join room
 		case client := <-r.join:
 			r.clients[client] = true
-			log.Printf("Client joined room")
+			log.Printf("Client: %s joined room: %s", client.name, r.name)
 
 		// if client wants to leave room 
 		case client := <-r.leave:
 			// remove client from room 
 			delete(r.clients, client)
 			log.Printf("Client left room ")
+		
+	    // When events moves:  server <- client 
+		case action := <- r.inBoundEvents:
+		switch action.Action {
+		   case "START_GAME": 
+                  // ALL GAME ROOM LOGIC HERE 
+			case "SEND_WORD":
+				score , err := r.gameEngine.ScoreWord(action.Value, action.User.Id, engine.Easy )
+				if err == nil{
+					// go routine to update player score
+					go r.gameEngine.UpdatePlayerScore(action.User.Id, score )
+				}
+        	case "PAUSE_GAME":
+				r.timer.Pause()
+			case "STOP_GAME":
+				r.timer.Stop()
+		}
+	   // generate and broadcast stats
+	   r.broadCastsEvents <- r.gameEngine.GenerateStatsReport()
 
 		// if a game message comes in through to the broadcastEvents channel
 		// game message can be letters generated for round, round winner announcement, 
@@ -124,21 +146,7 @@ func (r *Room) Run(){
 	}
     // client actions 
 	select {
-	case action := <- r.inBoundEvents:
-		switch action.Action {
-			case "SEND_WORD":
-				score , err := r.gameEngine.ScoreWord(action.Value, action.UserID, engine.Easy )
-				if err == nil{
-					// go routine to update player score
-					go r.gameEngine.UpdatePlayerScore(action.UserID, score )
-				}
-        	case "PAUSE_GAME":
-				r.timer.Pause()
-			case "STOP_GAME":
-				r.timer.Stop()
-		}
-	   // generate and broadcast stats
-	   r.broadCastsEvents <- r.gameEngine.GenerateStatsReport()
+	
 	  }
    }
 }
@@ -149,7 +157,7 @@ const (
 )
 
 var upgrader = &websocket.Upgrader{
-	ReadBufferSize: socketBufferSize,
+	 ReadBufferSize: socketBufferSize,
 	 WriteBufferSize: socketBufferSize,
 	}
 
@@ -168,23 +176,15 @@ func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request){
 	}
     // Client 
 	client := &client{
+		name: "Unauthenticated",
 		socket: socket,
 		inboundMessage:  make(chan events.GameStateBroadcast, messageBufferSize),
 		room: r,
 	}
-	// defer leave
-	defer func(){
-		r.leave <- client 
-	}()
-    // join room 
-	r.join <- client 
+
 	// client write  
 	go client.writeToClientPump()
 	// client read
 	go client.readFromClientPump()
-
-	
-	// try starting game 
-    r.startGame <- true 
 }
 

@@ -24,16 +24,16 @@ func NewRoomManager()*roomManager{
 func(rm *roomManager) HandleWS(w http.ResponseWriter,req *http.Request){
   var options []RoomOption //room options like capacity etc
   // extract unique room id with chi 
-  roomId := chi.URLParam(req, "id")
+  RoomId := chi.URLParam(req, "id")
   queryString := req.URL.Query()
   // query parameters E.g : http//localhost:8081/room/:23?name=Junoo&capacity=5
   nQuery := queryString.Get("name")
   cQuery := queryString.Get("capacity")
   // lock manager mutex 
   rm.Lock()
-  targetRoom, exists := rm.rooms[roomId]
+  targetRoom, exists := rm.rooms[RoomId]
   // in a situation where room is full 
-  if targetRoom.isFull(){
+  if exists && targetRoom.isFull(){
      http.Error(w, "Room is full", http.StatusForbidden )
      return 
   }
@@ -49,7 +49,7 @@ func(rm *roomManager) HandleWS(w http.ResponseWriter,req *http.Request){
        }
     }
 	  targetRoom = NewRoom(options...)
-	  rm.rooms[roomId] = targetRoom
+	  rm.rooms[RoomId] = targetRoom
 	   // spawn the run function of targetted room silently
     go targetRoom.Run()
   }
