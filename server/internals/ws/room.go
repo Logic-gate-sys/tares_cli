@@ -2,9 +2,6 @@ package ws
 
 import (
 	"log"
-	"net/http"
-
-	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/engine"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"github.com/logic-gate-sys/tares-cli/server/internals/timer"
@@ -63,6 +60,8 @@ func NewRoom(opts ...RoomOption) *Room {
 	stopGame: make(chan bool),
 	timer: *timer.NewGameClock(),
    }
+
+   r.gameEngine = engine.NewGame(r.id)
    // loop and update any provided options in room 
    for _, roomOpt := range opts{
 	   roomOpt(r)
@@ -76,13 +75,15 @@ func NewRoom(opts ...RoomOption) *Room {
 // Run is the core loop for messages delivery via channel/ clients.
 // Also takes message from client to engine etc
 func (r *Room) Run(){
+	// start game engine loop once, when room starts running
    // respond to leave or join room request 
    for {
 	//start game 
 	select {
 		case <- r.startGame:
-		    // run the game engine in routine
-			go r.gameEngine.Run() // 1 Single routine -handling game maths 
+			// These are the conditions for a game to start:
+			// 1. Signle player: start timer down to 30 seconds when user request play
+			// 2. Multiplayer : when room capacity is full, start timer-down 30 seconds 
 		case <- r.stopGame:
 			r.timer.Stop()
 
@@ -102,7 +103,7 @@ func (r *Room) Run(){
 		case client := <-r.leave:
 			// remove client from room 
 			delete(r.clients, client)
-			log.Printf("Client left room ")
+			log.Printf("Client left room: %s", client.name)
 		
 	    // When events moves:  server <- client 
 		case action := <- r.inBoundEvents:
@@ -110,11 +111,15 @@ func (r *Room) Run(){
 		   case "START_GAME": 
                   // ALL GAME ROOM LOGIC HERE 
 			case "SEND_WORD":
-				score , err := r.gameEngine.ScoreWord(action.Value, action.User.Id, engine.Easy )
-				if err == nil{
+				val, exists:= action.Value["word"].(string)
+				if exists {
+                	score , err := r.gameEngine.ScoreWord(val,action.User.Id, engine.Easy)
+					if err == nil{
 					// go routine to update player score
 					go r.gameEngine.UpdatePlayerScore(action.User.Id, score )
 				}
+				}
+				
         	case "PAUSE_GAME":
 				r.timer.Pause()
 			case "STOP_GAME":
@@ -145,9 +150,9 @@ func (r *Room) Run(){
 			}
 	}
     // client actions 
-	select {
+	// select {
 	
-	  }
+	//   }
    }
 }
 
@@ -156,35 +161,12 @@ const (
 	messageBufferSize = 512 // 512 bytes
 )
 
-var upgrader = &websocket.Upgrader{
-	 ReadBufferSize: socketBufferSize,
-	 WriteBufferSize: socketBufferSize,
-	}
-
 //  This func is a method on the room struct.
 //  Game room is asserted full if the number of clients connected are same as capacity
 func (rm *Room) isFull() bool {
 	return len(rm.clients) == int(rm.capacity)
 }
 
-// turn room into http handler by implementing the ServeHTTP func from http.HandlerFunc
-func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request){
-	// upgrade http request 
-	socket, err := upgrader.Upgrade(w, req, nil)
-	if err !=nil{
-		log.Fatal("Socket upgrade failed ")
-	}
-    // Client 
-	client := &client{
-		name: "Unauthenticated",
-		socket: socket,
-		inboundMessage:  make(chan events.GameStateBroadcast, messageBufferSize),
-		room: r,
-	}
 
-	// client write  
-	go client.writeToClientPump()
-	// client read
-	go client.readFromClientPump()
-}
+
 

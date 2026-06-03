@@ -5,6 +5,7 @@ CREATE TYPE player_level as ENUM ( 'beginner','intermediate','professional','exp
 CREATE TABLE IF NOT EXISTS users (
         id BIGSERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL, 
         username VARCHAR(255) NOT NULL,
         level player_level DEFAULT 'beginner',
         bio TEXT,

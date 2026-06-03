@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/logic-gate-sys/tares-cli/server/internals/api"
+	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/migrations"
 )
@@ -14,25 +15,27 @@ type Application struct{
 	Logger *log.Logger
 	DB   *sql.DB
 	UserHandler *api.UserHandler
+   Middleware  middleware.UserMiddleware
 }
 
 func NewApplication()(*Application, error){
    //logger 
    logger := log.New(os.Stdout, " ", log.Ldate|log.Ltime)
-   // db 
    db,err := store.Open()
 
    if err !=nil{
 	 return nil, err
    }
    userStore := store.NewPostgresUserStore(db)
+   tokenStore :=store.NewPostgresTokenStore(db)
    // migrate database
    err = store.MigrateFS(db, migrations.FS, ".")
    if err !=nil{
       panic(err)
    } 
    // all handlers
-   userHandler := api.NewUserHandler(userStore, logger)
+   userHandler := api.NewUserHandler(userStore, tokenStore, logger)
+   middleware  := middleware.UserMiddleware{UserStore: userStore}
 
 
    //application 
@@ -40,6 +43,7 @@ func NewApplication()(*Application, error){
       Logger: logger, 
       DB: db, 
       UserHandler:userHandler,
+      Middleware: middleware,
    }
    return app, nil
 }

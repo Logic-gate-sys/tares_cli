@@ -3,9 +3,10 @@ package engine
 import (
 	"sync"
 	"time"
+	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"golang.org/x/net/websocket"
 )
- 
+
 // structs and interfaces
 type Game struct {
 	ID 	int 
@@ -13,7 +14,8 @@ type Game struct {
 	Letters []LetterSet
 	ActiveRoom ActiveRoom
 	Duration time.Duration
-	mux         sync.Mutex // controls data changes efficiently
+	mux      sync.Mutex // controls data changes efficiently
+	state events.GameStateBroadcast
 }
 
 type Player struct{

@@ -3,35 +3,30 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
-const socketURL = "ws://localhost:8081/ws/room/12"
+const socketURL = "ws://localhost:8081/ws/rooms"
 
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println(">>> WELCOME TO TARES CLI WHERE CHAMPIONSHIP GLITTERS IN YOUR TERMINAL <<< \n Please follow the prompts below to continue ")
-	//taking use details
-	os.Stdout.WriteString(">>>> ")
-	fmt.Println("Enter your username: ")
-	scanner.Scan()
-	userName := strings.TrimSpace(scanner.Text())
+	//::::::::::::::::::::::: USER VERIFICATION ::::::::::::::::::::
+	username, email, password := helpers.TakeInput()
+	// use this details to login and get auth token
 
-	fmt.Println("Enter your email address:  ")
-	scanner.Scan()
-	email := strings.TrimSpace(scanner.Text())
-
-	fmt.Println("Enter your password:  ")
-	scanner.Scan()
-	password := strings.TrimSpace(scanner.Text())
-
-
-	// connect client to socker server
+	// connect authenticated user to socket 
+	urlString := url.URL{Scheme: "ws", Host:"localhost:8080", Path: "/ws/rooms"}
+	authHeader := http.Header{}
+	authHeader.Add("Authorization", "Bearer "+acessToken)
 	conn,_, err := websocket.DefaultDialer.Dial(socketURL, nil)
 	if err != nil {
 		fmt.Println("Error! Failed to connect to game socket server")
@@ -39,29 +34,20 @@ func main() {
 	}
 	// close socket finally
 	defer conn.Close()
-
+	// authenticate user 
+	authUser,inboundEvent,authErr:= helpers.Authenticate(conn, username, email, password)
+    if authErr !=nil{
+		fmt.Println("faild to authenticate user")
+	}
 	// Immediate first step : sending authpaylaod
-	authPayload := events.PlayerAction{
-		Action: "SIGN_UP",
-		User: &events.Player{
-			Username: userName,
-			Password: password,
-			Email: email,
-		},
-	}
-	if err := conn.WriteJSON(authPayload); 
-		err !=nil{
-          fmt.Println("Failed to authenticate user", err)
-		  return
-	}
-	fmt.Println("Authenticating user , please wait ....")
+	fmt.Printf("Auth Response: %v \n", inboundEvent)
 
+	//::::::::::::::::::::::::USER & SERVER EVENTS(GAME):::::::::::::::::::::::::::::::::
 	done := make(chan struct{})
 	//Options for user
 	go func(){
 		defer close(done)
 		 for {
-			// ::::::::::::::: SERVER SENT EVENTS ::::::::::::::::::
 	        var broadcast events.GameStateBroadcast
 			if err := conn.ReadJSON(&broadcast);
 	            err != nil{
@@ -112,11 +98,11 @@ func main() {
 	// switching on input entered 
 	var playerAction events.PlayerAction
 	switch input {
-	case "SEND_	WORD":
+	case "SEND_WORD":
 		playerAction = events.PlayerAction{
-			User: authPayload.User,
+			User: authUser,
 			Action: events.SendWord,
-			Value: "success",
+			Value: map[string]any{"message":"success"},
 		}
 		shouldSend = true 
 	case "PAUSE_GAME":
@@ -149,5 +135,5 @@ case <-done:
 	fmt.Println("Bringing Game to a close...")
 	return 
 default :
-}
+	}
 }
