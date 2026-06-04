@@ -1,8 +1,10 @@
 package store
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -53,32 +55,12 @@ type PostresUserStore struct {
 	db *sql.DB
 }
 
-func (ps *PostresUserStore) GetUserByEmail(email string) (*User, error) {
-	user := &User{}
-	query := `SELECT email,password,username,level,total_score 
-		          FROM users
-				  WHERE email = $1
-				  `
-	err := ps.db.QueryRow(query, email).Scan(
-		&user.Email,
-		&user.PasswordHash,
-		&user.Username,
-		&user.PlayerLevel,
-		&user.TotalScore,
-	)
-	// check for errors
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
 
 type UserStore interface {
-	CreateUser(*User) (*User, error)
-	GetUserById(id int) (*User, error)
-	GetUserByEmail(string) (*User, error)
-	GetUserByToken(scope, plaintextPassword string) (*User, error)
+	CreateUser(context.Context, *User) (*User, error)
+	GetUserById(ctx context.Context, id int) (*User, error)
+	GetUserByEmail(ctx context.Context, email string)(*User, error)
+	GetUserByToken(cts context.Context,scope, plaintextPassword string) (*User, error)
 }
 
 // constructor
@@ -86,27 +68,32 @@ func NewPostgresUserStore(db *sql.DB) *PostresUserStore {
 	return &PostresUserStore{db: db}
 }
 
-func (ps *PostresUserStore) CreateUser(user *User) (*User, error) {
+func (ps *PostresUserStore) CreateUser(ctx context.Context, user *User) (*User, error) {
 	query := `INSERT INTO users (email,username,bio)
 	     VALUES($1,$2,$3)
 		 RETURNING email, username,bio`
 	//execute query
-	_, err := ps.db.Exec(query, user.Email, user.Username, &user.Bio)
+	_, err := ps.db.ExecContext(ctx, query, user.Email, user.Username, &user.Bio)
 
 	if err != nil {
-		return nil, err
+		if errors.Is(err, context.DeadlineExceeded){
+			return nil, errors.New("Context deadline exceeded")
+		}
+		if errors.Is(err, sql.ErrNoRows){
+			return nil, errors.New("Something went wrong")
+		}
 	}
 	// return user and no error
 	return user, nil
 }
 
-func (ps *PostresUserStore) GetUserById(id int) (*User, error) {
+func (ps *PostresUserStore) GetUserById(ctx context.Context, id int) (*User, error) {
 	user := &User{}
 	query := `SELECT email,username,level,total_score 
 	          FROM users
 			  WHERE id = $1
 			  `
-	err := ps.db.QueryRow(query, id).Scan(
+	err := ps.db.QueryRowContext(ctx, query, id).Scan(
 		&user.Email,
 		&user.Username,
 		&user.PlayerLevel,
@@ -115,13 +102,18 @@ func (ps *PostresUserStore) GetUserById(id int) (*User, error) {
 
 	// check for errors
 	if err != nil {
-		return nil, err
+		if errors.Is(err, context.DeadlineExceeded){
+			return nil, errors.New("Context deadline exceeded")
+		}
+		if errors.Is(err, sql.ErrNoRows){
+			return nil, errors.New("Something went wrong")
+		}
 	}
 
 	return user, nil
 }
 
-func (s *PostresUserStore) GetUserByToken(scope, plaintextPassword string) (*User, error) {
+func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, plaintextPassword string) (*User, error) {
 	tokenHash := sha256.Sum256([]byte(plaintextPassword))
 	//query
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at
@@ -133,7 +125,7 @@ func (s *PostresUserStore) GetUserByToken(scope, plaintextPassword string) (*Use
 		PasswordHash: password{},
 	}
 
-	err := s.db.QueryRow(query, tokenHash[:], scope, time.Now()).Scan(
+	err := s.db.QueryRowContext(ctx, query, tokenHash[:], scope, time.Now()).Scan(
 		&user.Id,
 		&user.Username,
 		&user.Email,
@@ -142,13 +134,41 @@ func (s *PostresUserStore) GetUserByToken(scope, plaintextPassword string) (*Use
 		&user.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-
 	if err != nil {
-		return nil, err
+		if errors.Is(err, context.DeadlineExceeded){
+			return nil, errors.New("Context deadline exceeded")
+		}
+		if errors.Is(err, sql.ErrNoRows){
+			return nil, errors.New("Something went wrong")
+		}
 	}
 
 	return user, nil
 }
+
+func (ps *PostresUserStore) GetUserByEmail(ctx context.Context, email string)(*User, error) {
+	user := &User{}
+	query := `SELECT email,password,username,level,total_score 
+		          FROM users
+				  WHERE email = $1
+				  `
+	err := ps.db.QueryRowContext(ctx, query, email).Scan(
+		&user.Email,
+		&user.PasswordHash,
+		&user.Username,
+		&user.PlayerLevel,
+		&user.TotalScore,
+	)
+	// check for errors
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded){
+			return nil, errors.New("Context deadline exceeded")
+		}
+		if errors.Is(err, sql.ErrNoRows){
+			return nil, errors.New("Something went wrong")
+		}
+	}
+
+	return user, nil
+}
+

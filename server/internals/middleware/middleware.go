@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
+
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
@@ -42,9 +44,12 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 		if len(parts) !=2 || parts[0]=="Bearer"{
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message":"Invalid token"})
 		}
+		ctx,cancel :=context.WithTimeout(r.Context(), 1500 *time.Millisecond)
+		defer cancel()
+
 		// get user token
 		token := parts[1]
-		user, err := um.UserStore.GetUserByToken(tokens.AuthScope, token)
+		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, token)
 		if err !=nil{
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
 			return 

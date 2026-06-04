@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
+    "context"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -20,6 +20,8 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println(">>> WELCOME TO TARES CLI WHERE CHAMPIONSHIP GLITTERS IN YOUR TERMINAL <<< \n Please follow the prompts below to continue ")
 	//::::::::::::::::::::::: USER VERIFICATION ::::::::::::::::::::
+	ctx, cancel := context.WithTimeout(context.Background(),10*time.second)
+	defer cancel()
 	username, email, password := helpers.TakeInput()
 	// use this details to login and get auth token
 

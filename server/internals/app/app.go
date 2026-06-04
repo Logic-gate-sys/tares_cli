@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-
 	"github.com/logic-gate-sys/tares-cli/server/internals/api"
 	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"

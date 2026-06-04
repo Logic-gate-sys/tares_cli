@@ -1,7 +1,11 @@
 package api
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -11,13 +15,18 @@ import (
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
 )
 
+type UserResponse struct{
+	Error string `json:"string"`
+	Details string `json:"details"`
+}
 
 type UserHandler struct{
 	userStore *store.PostresUserStore
 	tokenStore *store.PostgresTokenStore
 	Logger *log.Logger
 }
-
+type key  string 
+const traceKey key = key("Create-TraceId")
 //constructor 
 func NewUserHandler(userStore *store.PostresUserStore,tokenStore *store.PostgresTokenStore, logger *log.Logger) *UserHandler{
 	return &UserHandler{ 
@@ -26,6 +35,8 @@ func NewUserHandler(userStore *store.PostresUserStore,tokenStore *store.Postgres
 		Logger: logger}
 }
 
+
+// Handles user signup(login), context aware to prevent memory leaks and improve performance
 func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	 var usr store.User
 	 err:=json.NewDecoder(r.Body).Decode(&usr)
@@ -34,55 +45,145 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request":"Bad request"})
 		return 
 	 }
-
-	 newUser, errs := uh.userStore.CreateUser(&usr)
-	 if errs !=nil{
-		uh.Logger.Println("Failed to create user")
-		utils.WriteJSON(w, 400, utils.Envlope{"Failed":"Failed to create user"})
-		return 
+	 // add context for logging and memory management
+	 ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
+	 defer cancel()
+	 traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
+	 ctx= context.WithValue(ctx, traceKey, traceID)
+     // early exit if client bails
+	 select{
+		 case <-ctx.Done():
+    	     res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error(),}
+			 w.WriteHeader(http.StatusRequestTimeout)
+			 json.NewEncoder(w).Encode(res)
+			 log.Printf("Cancelled [traceID = %s] :%v", traceID, ctx.Err())
+			 return 
+		 default:
 	 }
-  
-	 utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"user":newUser})
-     
+	 // run DB in go routine 
+	 type authResponse struct {
+		error  error
+		user   *store.User
+	 }
+	 ch :=make(chan authResponse, 1)
+
+	 go func ()  {
+		newUser, errs := uh.userStore.CreateUser(ctx, &usr)
+	    if errs !=nil{
+			ch <- authResponse{error: errs}
+			return 
+	 	}
+
+        ch <- authResponse{error:nil, user: newUser}
+	 }()
+
+	 select{
+	 case res :=<-ch:
+		if res.error !=nil {
+			if errors.Is(res.error, sql.ErrNoRows){
+            uh.Logger.Printf("No rows affect [traceId =%s] :%v", traceID, res.error)
+			utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":"Not found"})
+		    return 
+			}
+			// esle error is server error 
+			uh.Logger.Printf("Sever error [traceId =%s] :%v", traceID, res.error)
+			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Server error"})
+		    return 
+		}
+		// else everything is okay
+		uh.Logger.Printf("User signup[traceId =%s] :%v", traceID, res.user)
+		utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"user":res.user})
+		return 
+
+	case <-ctx.Done():
+		uh.Logger.Printf("Request timeout [traceId = %s] :%v", traceID, ctx.Err())
+		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error":"Request timedout"})
+		return
+	 }
+
 }
+
+
 
 func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 	var usr struct {
-		email string 
-		password string
+		Email string `json:"email"`
+		Password string `json:"password"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&usr);
 		err !=nil{
 		uh.Logger.Printf("Invalid data provided: %v", usr)
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request":"Bad request"})
 		return 
 	}
-	// find  validate user exists 
-	user, err := uh.userStore.GetUserByEmail(usr.email)
-	if err !=nil{
-		uh.Logger.Println("Internal server errror")
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"Error":"Internal Server error "})
-		return 
-	 }
-	if user ==nil{
-		utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"Error":"User not found "})
-		return  
-	}
-	// get user token
-	userToken, err := uh.tokenStore.GetUserToken(user.Id)
-	if err !=nil{
-		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"Error":"Internal server error"})
-		return 
-	}
+	// add context for logging and memory management
+	 ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
+	 defer cancel()
 
-	if userToken ==nil {
-		userToken, err = tokens.GenerateToken(user.Id, 24* time.Hour, tokens.AuthScope)
+	 traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
+	 ctx= context.WithValue(ctx, traceKey, traceID)
+     // early exit if client bails
+	 select{
+		 case <-ctx.Done():
+    	     res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error(),}
+			 w.WriteHeader(http.StatusRequestTimeout)
+			 json.NewEncoder(w).Encode(res)
+			 log.Printf("Cancelled [traceID = %s] :%v", traceID, ctx.Err())
+			 return 
+		 default:
+	 }
+	 // run DB in go routine 
+	 type authResponse struct {
+		error  error
+		user   *store.User
+		token  *tokens.Token
+	 }
+	 ch := make(chan authResponse, 1)
+	 
+	 go func(){
+		user, err := uh.userStore.GetUserByEmail(ctx, usr.Email)
 		if err !=nil{
-			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"Error":"Internal server error"})
+			ch <- authResponse{error: err}
+			return 
+	 	}
+		// get user token
+		userToken, err := uh.tokenStore.GetUserToken(user.Id)
+		if err !=nil{
+			ch <- authResponse{error: err}
 			return 
 		}
+		if userToken == nil {
+			userToken, err = tokens.GenerateToken(user.Id, 24* time.Hour, tokens.AuthScope)
+			if err !=nil{
+				ch <- authResponse{error: err}
+				return 
+			}
+		}
+		// send full data to channel 
+		ch <- authResponse{error: nil, user: user, token: userToken}
+	 }()
+
+	// find  validate user exists 
+	select {
+	case res :=<- ch:
+		if res.error !=nil {
+			if errors.Is(res.error, sql.ErrNoRows){
+				utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":res.error})
+				return 
+			} 
+			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Internal server error"})
+			uh.Logger.Printf("Server error [traceId = %s] : %v", traceID, res.error)
+			return 
+		}
+		// else no errors 
+		utils.WriteJSON(w,200, utils.Envlope{"user": res.user, "token":res.token})
+		uh.Logger.Printf("User logged in [traceId = %s] :%v", traceID, res)
+        
+	case <- ctx.Done():
+		w.WriteHeader(http.StatusRequestTimeout)
+		json.NewEncoder(w).Encode(UserResponse{Error:"Request timeout", Details: "Request took too long"})
+		log.Printf("Timedout [traceID = %s]: %v", traceID, ctx.Err())
+		return 
 	}
-	// write user back 
-	utils.WriteJSON(w, 200, utils.Envlope{"user": user, "token": userToken.Hash})
-	return 
 }
