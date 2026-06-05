@@ -2,12 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
-    "context"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -18,31 +19,24 @@ const socketURL = "ws://localhost:8081/ws/rooms"
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println(">>> WELCOME TO TARES CLI WHERE CHAMPIONSHIP GLITTERS IN YOUR TERMINAL <<< \n Please follow the prompts below to continue ")
-	//::::::::::::::::::::::: USER VERIFICATION ::::::::::::::::::::
-	ctx, cancel := context.WithTimeout(context.Background(),10*time.second)
+	fmt.Println("::::: TARES WORD-SCRAMBLE <<-->> CHAMPIONSHIP <<-->> GLITTERS :::::\n Follow the prompts below to continue")
+	requestTimeout := 1500*time.Millisecond
+	//::::::::::::::::::::::: USER AUTHS(authentication & authorisation)::::::::::::::::::::
+	ctx, cancel := context.WithTimeout(context.Background(),requestTimeout)
 	defer cancel()
-	username, email, password := helpers.TakeInput()
-	// use this details to login and get auth token
-
+	authUser, err := helpers.Auth(ctx)
 	// connect authenticated user to socket 
-	urlString := url.URL{Scheme: "ws", Host:"localhost:8080", Path: "/ws/rooms"}
-	authHeader := http.Header{}
-	authHeader.Add("Authorization", "Bearer "+acessToken)
-	conn,_, err := websocket.DefaultDialer.Dial(socketURL, nil)
+	header := make(http.Header)
+	header.Set("Authorization", "Bearer "+string(authUser.Token.Hash))
+	conn,_, err := websocket.DefaultDialer.Dial(socketURL, header)
 	if err != nil {
 		fmt.Println("Error! Failed to connect to game socket server")
 		panic(err)
 	}
 	// close socket finally
 	defer conn.Close()
-	// authenticate user 
-	authUser,inboundEvent,authErr:= helpers.Authenticate(conn, username, email, password)
-    if authErr !=nil{
-		fmt.Println("faild to authenticate user")
-	}
-	// Immediate first step : sending authpaylaod
-	fmt.Printf("Auth Response: %v \n", inboundEvent)
+	// connect the authenticate user to socker now
+
 
 	//::::::::::::::::::::::::USER & SERVER EVENTS(GAME):::::::::::::::::::::::::::::::::
 	done := make(chan struct{})
@@ -102,7 +96,6 @@ func main() {
 	switch input {
 	case "SEND_WORD":
 		playerAction = events.PlayerAction{
-			User: authUser,
 			Action: events.SendWord,
 			Value: map[string]any{"message":"success"},
 		}

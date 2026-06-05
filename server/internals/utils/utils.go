@@ -23,7 +23,6 @@ func WriteJSON(w http.ResponseWriter, status int, data Envlope) error{
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	w.Write(js)
-
 	return nil
 }
 
