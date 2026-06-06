@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
@@ -107,8 +108,6 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
-
 func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 	var usr struct {
 		Email string `json:"email"`
@@ -131,8 +130,7 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 	 select{
 		 case <-ctx.Done():
     	     res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error(),}
-			 w.WriteHeader(http.StatusRequestTimeout)
-			 json.NewEncoder(w).Encode(res)
+			 utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error": res})
 			 log.Printf("Cancelled [traceID = %s] :%v", traceID, ctx.Err())
 			 return 
 		 default:
@@ -151,6 +149,16 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 			ch <- authResponse{error: err}
 			return 
 	 	}
+		// compare their password
+		matches, err := user.Password.Matches(usr.Password)
+		if err !=nil{
+			ch <- authResponse{error: err}
+			return 
+		}
+		if !matches{
+			ch <- authResponse{error: errors.New("Invalid credential")}
+			return 
+		}
 		// get user token
 		userToken, err := uh.tokenStore.GetUserToken(user.Id)
 		if err !=nil{
@@ -176,6 +184,11 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 				utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":res.error})
 				return 
 			} 
+			if strings.Contains(res.error.Error(), "Invalid credential"){
+            	utils.WriteJSON(w, http.StatusUnauthorized, utils.Envlope{"error":"Internal server error"})
+				uh.Logger.Printf("Unauthorised [traceId = %s] : %v", traceID, res.error)
+				return 
+			}
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Internal server error"})
 			uh.Logger.Printf("Server error [traceId = %s] : %v", traceID, res.error)
 			return 
@@ -185,8 +198,7 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 		uh.Logger.Printf("User logged in [traceId = %s] :%v", traceID, res)
         
 	case <- ctx.Done():
-		w.WriteHeader(http.StatusRequestTimeout)
-		json.NewEncoder(w).Encode(UserResponse{Error:"Request timeout", Details: "Request took too long"})
+		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error":"Request timeout"})
 		log.Printf("Timedout [traceID = %s]: %v", traceID, ctx.Err())
 		return 
 	}

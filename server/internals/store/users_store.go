@@ -32,7 +32,7 @@ func(ps *Password) Matches(plaintext string )(bool , error){
 		err !=nil{
 			switch {
 			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
-				return false, errors.New("No match found")
+				return false, errors.New("Invalid credential")
 			default:
 				return false, err 
 			}

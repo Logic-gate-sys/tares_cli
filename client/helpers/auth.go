@@ -65,8 +65,8 @@ func login(ctx context.Context)(*store.User, *tokens.Token, error){
 		  RequestType: "POST",
 	}
 	bytesResponse, err := MakeHttpRequest(ctx, data)
-	if err !=nil{
-		fmt.Println("API call failed: ", err)
+	if err != nil{
+		fmt.Println(err)
 		return nil, nil, err
 	}
 	var envlope AuthUser 
