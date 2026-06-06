@@ -8,8 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
 )
+
+
+
 const httpBaseURL ="http://localhost:8081"
 type ReqType  string
 const (
@@ -23,41 +25,44 @@ type RequestData struct {
 	RequestType ReqType
 }
 
-func MakeHttpRequest(ctx context.Context,data RequestData) ([]byte, error){
-    jsonData, err := json.Marshal(data.Body)
-	if err !=nil{
-		log.Printf("Error : %v", err)
-		return nil, err
-	}
-	client := http.Client{Timeout: 1500*time.Millisecond}
-	// request 
-	req, err:=http.NewRequestWithContext(ctx,string(data.RequestType),httpBaseURL+string(data.URL),nil )
-	if err !=nil{
-		log.Printf("Error : %v", err)
-		return nil, err
-	}
+func MakeHttpRequest(ctx context.Context, data RequestData) ([]byte, error){
+	var bodyReader io.Reader
 	if data.Body !=nil{
-		req.Body = io.NopCloser(bytes.NewBuffer(jsonData))
+        jsonData, err := json.Marshal(data.Body)
+		if err !=nil{
+			log.Printf("Error marshalling request body : %v", err)
+			return nil, err
+		}
+		bodyReader = bytes.NewBuffer(jsonData)
 	}
-
+    
+	// request 
+	req, err:= http.NewRequestWithContext(ctx, string(data.RequestType), httpBaseURL+string(data.URL),bodyReader )
+	if err !=nil{
+		log.Printf("Error creating new request: %v", err) 
+		return nil, err
+	}
+    // set header & token
 	req.Header.Set("Content-Type","application/json")
 	if data.Token !="" {
 		req.Header.Set("Authorization", "Bearer "+data.Token)
 	}
-
+    client :=&http.Client{}
 	resp, err := client.Do(req)
 	if err !=nil{
-		log.Printf("Error : %v", err)
+		log.Printf("Error executing request: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err :=io.ReadAll(resp.Body)
+	// read bytes
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err !=nil{
 		return nil, err
 	}
-	if resp.StatusCode >=400{
-		return nil, fmt.Errorf("Bad request: %v", bodyBytes)
+
+	if resp.StatusCode >= 400{
+		return nil, fmt.Errorf("Bad request (Status = %d)", resp.StatusCode)
 	}
 	
 	return bodyBytes, nil

@@ -49,15 +49,14 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 	 ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
 	 defer cancel()
 	 traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
-	 ctx= context.WithValue(ctx, traceKey, traceID)
-     // early exit if client bails
+	 ctx = context.WithValue(ctx, traceKey, traceID)
+     // Checkout of context timeout
 	 select{
 		 case <-ctx.Done():
-    	     res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error(),}
-			 w.WriteHeader(http.StatusRequestTimeout)
-			 json.NewEncoder(w).Encode(res)
-			 log.Printf("Cancelled [traceID = %s] :%v", traceID, ctx.Err())
-			 return 
+    	    res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error()}
+			log.Printf("Cancelled [traceID = %s] :%v", traceID, ctx.Err())
+			utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error": res})
+			return 
 		 default:
 	 }
 	 // run DB in go routine 
@@ -65,20 +64,25 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		error  error
 		user   *store.User
 	 }
-	 ch :=make(chan authResponse, 1)
-
+	 ch := make(chan authResponse, 1)
+     // create user in routine 
 	 go func ()  {
+		// hash pasword 
+		if err :=usr.Password.Set(*usr.Password.PlainText);
+			err !=nil{
+			ch <- authResponse{error: err}
+			}
 		newUser, errs := uh.userStore.CreateUser(ctx, &usr)
 	    if errs !=nil{
 			ch <- authResponse{error: errs}
 			return 
 	 	}
 
-        ch <- authResponse{error:nil, user: newUser}
+        ch <- authResponse{user: newUser}
 	 }()
 
 	 select{
-	 case res :=<-ch:
+	 case res := <-ch:
 		if res.error !=nil {
 			if errors.Is(res.error, sql.ErrNoRows){
             uh.Logger.Printf("No rows affect [traceId =%s] :%v", traceID, res.error)
@@ -91,11 +95,11 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		    return 
 		}
 		// else everything is okay
-		uh.Logger.Printf("User signup[traceId =%s] :%v", traceID, res.user)
-		utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"user":res.user})
+		uh.Logger.Printf("User signedup successfully. [traceId =%s]. Username: %s Email: %s", traceID, res.user.Username, res.user.Email)
+		utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"details":res.user})
 		return 
 
-	case <-ctx.Done():
+	case <- ctx.Done():
 		uh.Logger.Printf("Request timeout [traceId = %s] :%v", traceID, ctx.Err())
 		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error":"Request timedout"})
 		return

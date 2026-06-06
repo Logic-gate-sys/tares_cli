@@ -21,8 +21,9 @@ func TakeInput(takeUsername bool)(UserInputs){
 	}
 	for {
      	os.Stdout.WriteString(">>> ")
-		for {
-			if takeUsername {
+		// If username should be taken 
+		 if takeUsername {
+			for {
             	fmt.Println("Enter your username:  ")
 				scanner.Scan()
 				username = strings.TrimSpace(scanner.Text())
@@ -32,8 +33,9 @@ func TakeInput(takeUsername bool)(UserInputs){
 		    }
 			inputs.username = username
 			break 
-			}
-	    }
+	       }
+
+		 } 
 
 		for {
 			fmt.Println("Enter your email address:  ")

@@ -20,27 +20,29 @@ type AuthUser struct {
  Token  *tokens.Token `json:"token"`
 }
 
+
 func signup(ctx context.Context) (*store.User, error) {
 	shouldTakeUsername :=true
 	inputs := TakeInput(shouldTakeUsername)
 	// construct body
-	authBody :=struct {
-		username string
-		email string 
-		password string 
-	}{username: inputs.username, email: inputs.email, password: inputs.password}
-	
+	authBody :=store.User{
+		Username: inputs.username, 
+		Email: inputs.email,
+		Password: store.Password{PlainText: &inputs.password},
+	}
 	data := RequestData{
 	      URL: "/users/signup",
 		  Body: authBody,
 		  RequestType: "POST",
 	}
-	response, err := MakeHttpRequest(ctx, data)
+
+	bytesResponse, err := MakeHttpRequest(ctx, data)
 	if err !=nil{
+		fmt.Println("API call failed: ", err)
 		return nil , err
 	}
 	var user store.User
-	if err := json.Unmarshal(response, &user);
+	if err := json.Unmarshal(bytesResponse, &user);
 		err !=nil{
 			return nil, err
 		}
@@ -49,33 +51,35 @@ func signup(ctx context.Context) (*store.User, error) {
 
 // Login user 
 func login(ctx context.Context)(*store.User, *tokens.Token, error){
-	shouldTakeUsername :=false
+	shouldTakeUsername := false
 	inputs:= TakeInput(shouldTakeUsername)
 	// construct body
-	authBody :=struct {
-		email string 
-		password string 
-	}{email: inputs.email, password: inputs.password}
+	authBody :=store.User {
+		Email: inputs.email,
+		Password: store.Password{PlainText: &inputs.password},
+	}
 	
 	data := RequestData{
 	      URL: "/users/login",
 		  Body: authBody,
 		  RequestType: "POST",
 	}
-	response, err := MakeHttpRequest(ctx, data)
+	bytesResponse, err := MakeHttpRequest(ctx, data)
 	if err !=nil{
+		fmt.Println("API call failed: ", err)
 		return nil, nil, err
 	}
 	var envlope AuthUser 
 
-	if err := json.Unmarshal(response, &envlope);
+	if err := json.Unmarshal(bytesResponse, &envlope);
 		err !=nil{
            return nil,nil, fmt.Errorf("Invalid return body. Body")
 		}
     
-	return envlope.User,envlope.Token, nil
+	return envlope.User, envlope.Token, nil
 }
 
+// Combines login/signup to effectively authenticate a user and authorise them
 func Auth(ctx context.Context) (*AuthUser, error) {
 	for {
 		fmt.Println("1. Login")
@@ -83,18 +87,20 @@ func Auth(ctx context.Context) (*AuthUser, error) {
 		fmt.Println("3. Exit")
 		fmt.Print("Enter option (1-3): \n")
 		os.Stdout.WriteString("->> ")
+
+		// pick up and clean input 
 		var choice string
 		fmt.Scanln(&choice)
 		choice = strings.TrimSpace(choice)
-
+        
+		// case for user 
 		switch choice {
 		case "1":
+			fmt.Println("Trying to login...")
 			user, token, err := login(ctx)
 			if err != nil {
-				// Detect if the error indicates the user doesn't exist.
-				// Adjust strings.Contains based on whatever your MakeHttpRequest or server returns (e.g., 404, "not found", etc.)
 				if strings.Contains(strings.ToLower(err.Error()), "not found") || strings.Contains(err.Error(), "404") {
-					fmt.Println("\n[Notice] Account not found. Redirecting you to sign up first...")
+					fmt.Println("\n[ Notice ]: Account not found. Redirecting you to sign up first...")
 					// 1. Force signup
 					_, err := signup(ctx)
 					if err != nil {
@@ -135,7 +141,9 @@ func Auth(ctx context.Context) (*AuthUser, error) {
 			return &AuthUser{User: user, Token: token}, nil
 
 		case "3":
-			return nil, errors.New("authentication canceled by user")
+			fmt.Println("Authentication cancelled")
+			return nil, errors.New("Exit")
+
 		default:
 			fmt.Println("Invalid choice. Please select 1, 2, or 3.")
 		}

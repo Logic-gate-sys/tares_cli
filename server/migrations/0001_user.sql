@@ -5,9 +5,9 @@ CREATE TYPE player_level as ENUM ( 'beginner','intermediate','professional','exp
 CREATE TABLE IF NOT EXISTS users (
         id BIGSERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL, 
+        password_hash BYTEA NOT NULL, 
         username VARCHAR(255) NOT NULL,
-        level player_level DEFAULT 'beginner',
+        p_level player_level DEFAULT 'beginner',
         bio TEXT,
         total_score INT   DEFAULT 0 ,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 

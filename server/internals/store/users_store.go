@@ -5,14 +5,46 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
+type Password struct {
+	PlainText *string 
+	Hash      []byte
+}
+
+func(ps *Password) Set(plaintext string)(error){
+	hash, err := bcrypt.GenerateFromPassword([]byte(plaintext), 12)
+	if err !=nil{
+		fmt.Printf("Failed to hash password error: %v", err)
+		return err
+	}
+	ps.PlainText =&plaintext
+	ps.Hash = hash
+
+	return nil
+}
+
+func(ps *Password) Matches(plaintext string )(bool , error){
+	if err :=bcrypt.CompareHashAndPassword(ps.Hash, []byte(plaintext));
+		err !=nil{
+			switch {
+			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
+				return false, errors.New("No match found")
+			default:
+				return false, err 
+			}
+		}
+	return true, nil
+}
 
 type User struct {
 	Id           int       `json:"id"`
 	Email        string    `json:"email"`
 	Username     string    `json:"username"`
-	PasswordHash password  `json:"_"`
+	Password     Password  `json:"password"`
 	PlayerLevel  string    `json:"p_level"`
 	Bio          string    `json:"bio"`
 	TotalScore   int       `json:"total_score"`
@@ -31,10 +63,7 @@ type Room struct {
 	ClosedAt   string `json:"closed_at"`
 }
 
-type password struct {
-	plainText string
-	hash      []byte
-}
+
 
 type Games struct {
 	ID      int   `json:"id"`
@@ -69,11 +98,10 @@ func NewPostgresUserStore(db *sql.DB) *PostresUserStore {
 }
 
 func (ps *PostresUserStore) CreateUser(ctx context.Context, user *User) (*User, error) {
-	query := `INSERT INTO users (email,username,bio)
-	     VALUES($1,$2,$3)
-		 RETURNING email, username,bio`
+	query := `INSERT INTO users (email,username,password_hash)
+	     VALUES($1,$2,$3)`
 	//execute query
-	_, err := ps.db.ExecContext(ctx, query, user.Email, user.Username, &user.Bio)
+	_, err := ps.db.ExecContext(ctx, query, &user.Email, &user.Username, &user.Password.Hash)
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded){
@@ -82,6 +110,7 @@ func (ps *PostresUserStore) CreateUser(ctx context.Context, user *User) (*User, 
 		if errors.Is(err, sql.ErrNoRows){
 			return nil, errors.New("Something went wrong")
 		}
+		return nil, err 
 	}
 	// return user and no error
 	return user, nil
@@ -122,14 +151,14 @@ func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, plaintextP
   			  WHERE t.hash = $1 AND t.scope = $2 and t.expiry > $3`
 	// user struct
 	user := &User{
-		PasswordHash: password{},
+		Password: Password{},
 	}
 
 	err := s.db.QueryRowContext(ctx, query, tokenHash[:], scope, time.Now()).Scan(
 		&user.Id,
 		&user.Username,
 		&user.Email,
-		&user.PasswordHash.hash,
+		&user.Password.Hash,
 		&user.Bio,
 		&user.CreatedAt,
 	)
@@ -154,7 +183,7 @@ func (ps *PostresUserStore) GetUserByEmail(ctx context.Context, email string)(*U
 				  `
 	err := ps.db.QueryRowContext(ctx, query, email).Scan(
 		&user.Email,
-		&user.PasswordHash,
+		&user.Password,
 		&user.Username,
 		&user.PlayerLevel,
 		&user.TotalScore,

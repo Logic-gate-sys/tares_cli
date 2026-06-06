@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS  game (
 -- Room keeps a historical account of games
 CREATE TABLE IF NOT EXISTS  room (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(225) NOT NULL , 
+    room_name VARCHAR(225) NOT NULL , 
     creator_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     game_id    INT NOT NULL REFERENCES game(id) ON DELETE CASCADE, -- which game took place here 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

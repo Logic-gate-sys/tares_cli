@@ -7,9 +7,9 @@ services:
     volumes:
       - "./server/databases/postgres-data:/var/lib/postgresql/data:rw"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=logic
+      - POSTGRES_DB=tares_db
+      - POSTGRES_PASSWORD=logicgate
     restart: unless-stopped
 
   test_db:

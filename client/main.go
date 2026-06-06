@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -20,11 +18,14 @@ const socketURL = "ws://localhost:8081/ws/rooms"
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("::::: TARES WORD-SCRAMBLE <<-->> CHAMPIONSHIP <<-->> GLITTERS :::::\n Follow the prompts below to continue")
-	requestTimeout := 1500*time.Millisecond
 	//::::::::::::::::::::::: USER AUTHS(authentication & authorisation)::::::::::::::::::::
-	ctx, cancel := context.WithTimeout(context.Background(),requestTimeout)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authUser, err := helpers.Auth(ctx)
+	if err !=nil{
+		fmt.Printf("User exited with : %v \n", err)
+		return
+	}
 	// connect authenticated user to socket 
 	header := make(http.Header)
 	header.Set("Authorization", "Bearer "+string(authUser.Token.Hash))

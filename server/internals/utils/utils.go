@@ -13,16 +13,16 @@ import (
 type Envlope map[string]interface{}
 
 func WriteJSON(w http.ResponseWriter, status int, data Envlope) error{
-	js, err :=json.MarshalIndent(data, ""," ")
+	jsonByte, err := json.MarshalIndent(data, ""," ")
 	if err !=nil{
 		fmt.Println("Invalid data, cannot format to json")
 		return err
 	}
-	js = append(js,'\n')
+	jsonByte = append(jsonByte,'\n')
 	// header
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(js)
+	w.Write(jsonByte)
 	return nil
 }
 
