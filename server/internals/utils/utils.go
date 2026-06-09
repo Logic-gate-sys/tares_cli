@@ -12,6 +12,7 @@ import (
 
 type Envlope map[string]interface{}
 
+// Writes formatted json sent to the client with status code and associated data 
 func WriteJSON(w http.ResponseWriter, status int, data Envlope) error{
 	jsonByte, err := json.MarshalIndent(data, ""," ")
 	if err !=nil{

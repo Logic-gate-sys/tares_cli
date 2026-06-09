@@ -19,8 +19,8 @@ func TakeInput(takeUsername bool)(UserInputs){
 	if err := scanner.Err(); err !=nil{
 		panic("Can't open std scanner , please try again later")
 	}
+    os.Stdout.WriteString("-->> ")
 	for {
-     	os.Stdout.WriteString(">>> ")
 		// If username should be taken 
 		 if takeUsername {
 			for {

@@ -34,14 +34,17 @@ func GetUser(r *http.Request) (*store.User) {
 
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
-		w.Header().Add("Vary", "authorization")
+		w.Header().Add("Vary", "Authorization")
 		authHeader := r.Header.Get("Authorization")
 		if authHeader =="" {
 			r = SetUser(r, store.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return 
 		}
 		parts := strings.Split(authHeader, " ")
-		if len(parts) !=2 || parts[0] == "Bearer" {
+		if len(parts) !=2 || parts[0] != "Bearer" {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token"})
+			return 
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 2000 *time.Millisecond) // 2 seconds
 		defer cancel()
