@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
@@ -35,12 +37,15 @@ func GetUser(r *http.Request) (*store.User) {
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 		w.Header().Add("Vary", "Authorization")
+		fmt.Printf("AUTHENTICATION MIDDLEWARE HTI: <<<--------")
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader =="" {
 			r = SetUser(r, store.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return 
 		}
+		fmt.Printf("AUTHENTICATION MIDDLEWARE HTI: <<<--------")
 		parts := strings.Split(authHeader, " ")
 		if len(parts) !=2 || parts[0] != "Bearer" {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token"})

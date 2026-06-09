@@ -18,7 +18,6 @@ const socketURL = "ws://localhost:8081/ws/rooms"
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("::::: TARES WORD-SCRAMBLE <<-->> CHAMPIONSHIP <<-->> GLITTERS :::::\n Follow the prompts below to continue")
-	//::::::::::::::::::::::: USER AUTHS(authentication & authorisation)::::::::::::::::::::
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authUser, err := helpers.Auth(ctx)
@@ -29,15 +28,21 @@ func main() {
 	// connect authenticated user to socket 
 	header := http.Header{}
 	header.Set("Authorization", "Bearer "+string(authUser.Token.Hash))
-	conn,_, err := websocket.DefaultDialer.Dial(socketURL, header)
+	conn,resp, err := websocket.DefaultDialer.Dial(socketURL, header)
+
 	if err != nil {
 		fmt.Println("Error! Failed to connect to game socket server")
+		if resp !=nil{
+			buf := make([]byte, 1024)
+			n,_ := resp.Body.Read(buf)
+			fmt.Printf("Server error body: %s \n", string(buf[:n]))
+		}
 		panic(err)
 	}
 	// close socket finally
 	defer conn.Close()
 
-	//::::::::::::::::::::::::USER & SERVER EVENTS(GAME):::::::::::::::::::::::::::::::::
+	//:::::::::::::::::::::::: USER & SERVER EVENTS(GAME) :::::::::::::::::::::::::::::::::
 	done := make(chan struct{})
 	//Options for user
 	go func(){
@@ -67,10 +72,8 @@ func main() {
 		}
 	}()
 	     
-			
 	//:::::::::::::::::::: USER ACTIONS ::::::::::::::::::::::
 	for {
-	// print >> to represent and input taking 
 	os.Stdout.WriteString(">>>")
 	// scann should not falter 
 	if !scanner.Scan(){

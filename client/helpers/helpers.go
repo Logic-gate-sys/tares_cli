@@ -12,6 +12,8 @@ type UserInputs struct {
 	email    string
 	password string
 }
+
+
 func TakeInput(takeUsername bool)(UserInputs){
 	var inputs UserInputs
 	var username, email, password string 
