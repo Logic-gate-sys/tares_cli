@@ -12,7 +12,6 @@ const (
 	AuthScope = "authentication";
 )
 
-
 type Token struct {
 	PlainText   string `json:"token"`
 	Hash        []byte `json:"token_hash"`
@@ -28,7 +27,7 @@ func GenerateToken(user_id int, ttl time.Duration, scope string) (*Token, error)
 		Expiry: time.Now().Add(ttl),
 		Scope: scope,
 	}
-	//make 32 bits empty byte 
+	//make 32 bytes empty byte 
 	empty_byte := make([]byte, 32)
 	//fill empty byte with random values 
 	_, err := rand.Read(empty_byte)

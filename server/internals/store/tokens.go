@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -26,24 +27,27 @@ func NewPostgresTokenStore(db *sql.DB) *PostgresTokenStore {
 // token store interface
 type TokenStore interface {
 	Insert(token *tokens.Token) error
-	CreateNewToken(user_id int, ttl time.Duration, scope string) (*tokens.Token, error)
+	CreateUserToken(user_id int, ttl time.Duration, scope string) (*tokens.Token, error)
 	DeleteAllTokensForUser(user_id int, scope string) error
-	GetUserToken(user_id int) (*tokens.Token, error)
+	GetUserToken(ctx context.Context, user_id int) (*tokens.Token, error)
 }
 
-func (t *PostgresTokenStore) GetUserToken(user_id int ) (*tokens.Token, error){
+func (t *PostgresTokenStore) GetUserToken(ctx context.Context, user_id int ) (*tokens.Token, error){
+	// token 
 	var tk tokens.Token
-     sqlQuery :=`SELECT hash scope
+	// query 
+     sqlQuery :=`SELECT token_hash, scope
 	              FROM tokens 
 				  WHERE user_id =$1 AND expiry > NOW()`
-	 if err := t.db.QueryRow(sqlQuery, user_id).Scan(&tk.Hash, &tk.Scope);
-	 	err !=nil{
+	 if err := t.db.QueryRowContext(ctx, sqlQuery, user_id).Scan(&tk.Hash, &tk.Scope);
+	 	err != nil{
              return nil, err
 		}
      return &tk, nil 
 }
 
-func (t *PostgresTokenStore) CreateNewToken(user_id int, ttl time.Duration, scope string) (*tokens.Token, error) {
+
+func (t *PostgresTokenStore) CreateUserToken(user_id int, ttl time.Duration, scope string) (*tokens.Token, error) {
 	token, err := tokens.GenerateToken(user_id, ttl, scope)
 	if err != nil {
 		return nil, err
@@ -55,12 +59,11 @@ func (t *PostgresTokenStore) CreateNewToken(user_id int, ttl time.Duration, scop
 
 
 func (t *PostgresTokenStore) Insert(token *tokens.Token) error {
-	query := `INSERT INTO tokens(hash, expiry,user_id, scope)
+	query := `INSERT INTO tokens (token_hash,user_id,expiry,scope)
 	         VALUES($1,$2,$3,$4)
 			 `
 	// execute query
-	_, err := t.db.Exec(query, token.Hash, token.Expiry, token.UserID, token.Scope)
+	_, err := t.db.Exec(query, &token.Hash, &token.UserID, &token.Expiry,&token.Scope)
 	return err
 }
-
 

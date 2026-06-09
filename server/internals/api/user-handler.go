@@ -109,24 +109,22 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 }
 
 func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
-	var usr struct {
-		Email string `json:"email"`
-		Password string `json:"password"`
-	}
+	var usr store.User 
 
 	if err := json.NewDecoder(r.Body).Decode(&usr);
 		err !=nil{
-		uh.Logger.Printf("Invalid data provided: %v", usr)
-		utils.WriteJSON(w, 400, utils.Envlope{"Bad request":"Bad request"})
+		uh.Logger.Printf("Invalid data provided: %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"error":"Bad request"})
 		return 
 	}
+    uh.Logger.Printf("email: %ss , password: %s \n", usr.Email, usr.Password)
 	// add context for logging and memory management
 	 ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
 	 defer cancel()
 
 	 traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
 	 ctx= context.WithValue(ctx, traceKey, traceID)
-     // early exit if client bails
+     // early exit if client bails out 
 	 select{
 		 case <-ctx.Done():
     	     res := UserResponse{Error:"Context timeout",Details: ctx.Err().Error(),}
@@ -135,63 +133,69 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 			 return 
 		 default:
 	 }
-	 // run DB in go routine 
+	 // go routines  
 	 type authResponse struct {
 		error  error
 		user   *store.User
 		token  *tokens.Token
 	 }
+	 // routine (user and token )
 	 ch := make(chan authResponse, 1)
-	 
 	 go func(){
 		user, err := uh.userStore.GetUserByEmail(ctx, usr.Email)
 		if err !=nil{
 			ch <- authResponse{error: err}
+			uh.Logger.Printf("Error trying to get user by email: %v", err)
 			return 
 	 	}
 		// compare their password
-		matches, err := user.Password.Matches(usr.Password)
-		if err !=nil{
+		matches, err := user.Password.Matches(*usr.Password.PlainText)
+		if err != nil{
 			ch <- authResponse{error: err}
+			uh.Logger.Printf("Error trying to verify password: %v", err)
 			return 
 		}
 		if !matches{
 			ch <- authResponse{error: errors.New("Invalid credential")}
+			uh.Logger.Printf("Password matches: %t", matches)
 			return 
 		}
+
 		// get user token
-		userToken, err := uh.tokenStore.GetUserToken(user.Id)
-		if err !=nil{
+		userToken, err := uh.tokenStore.GetUserToken(ctx, user.Id)
+		if err != nil {
 			ch <- authResponse{error: err}
-			return 
+			uh.Logger.Printf("Error getting user token: %v", err)
 		}
 		if userToken == nil {
-			userToken, err = tokens.GenerateToken(user.Id, 24* time.Hour, tokens.AuthScope)
+			userToken, err = uh.tokenStore.CreateUserToken(user.Id, 24 *time.Hour, tokens.AuthScope)
 			if err !=nil{
 				ch <- authResponse{error: err}
+				uh.Logger.Printf("Error creating usertoken: %v", err)
 				return 
 			}
 		}
 		// send full data to channel 
 		ch <- authResponse{error: nil, user: user, token: userToken}
+		uh.Logger.Printf("User token %v", userToken )
 	 }()
 
 	// find  validate user exists 
 	select {
-	case res :=<- ch:
+	case res := <- ch:
 		if res.error !=nil {
-			if errors.Is(res.error, sql.ErrNoRows){
-				utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":res.error})
-				return 
-			} 
-			if strings.Contains(res.error.Error(), "Invalid credential"){
+			if errors.Is(res.error,  sql.ErrNoRows){
+				uh.Logger.Printf("Details: %v",res.error) 
+			} else if strings.Contains(res.error.Error(), "Invalid credential"){
             	utils.WriteJSON(w, http.StatusUnauthorized, utils.Envlope{"error":"Internal server error"})
 				uh.Logger.Printf("Unauthorised [traceId = %s] : %v", traceID, res.error)
 				return 
+			}else {
+				// this is some generalised error 
+				utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Internal server error"})
+				uh.Logger.Printf("Server error [traceId = %s] : %v", traceID, res.error)
+				return 
 			}
-			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Internal server error"})
-			uh.Logger.Printf("Server error [traceId = %s] : %v", traceID, res.error)
-			return 
 		}
 		// else no errors 
 		utils.WriteJSON(w,200, utils.Envlope{"user": res.user, "token":res.token})

@@ -54,13 +54,13 @@ func login(ctx context.Context)(*store.User, *tokens.Token, error){
 	shouldTakeUsername := false
 	inputs:= TakeInput(shouldTakeUsername)
 	// construct body
-	authBody :=store.User {
+	authBody := store.User {
 		Email: inputs.email,
 		Password: store.Password{PlainText: &inputs.password},
 	}
 	
 	data := RequestData{
-	      URL: "/users/login",
+	      URL: "/user/login",
 		  Body: authBody,
 		  RequestType: "POST",
 	}
@@ -117,8 +117,7 @@ func Auth(ctx context.Context) (*AuthUser, error) {
 					
 					return &AuthUser{User: user, Token: token}, nil
 				}
-				
-				// Handle other generic network/password errors safely without crashing
+				// other than that, failure has another cause
 				fmt.Printf("Login failed: %v\n", err)
 				continue
 			}

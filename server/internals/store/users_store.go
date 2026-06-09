@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
 	"golang.org/x/crypto/bcrypt"
 )
+
 type Password struct {
 	PlainText *string 
 	Hash      []byte
@@ -28,7 +28,7 @@ func(ps *Password) Set(plaintext string)(error){
 }
 
 func(ps *Password) Matches(plaintext string )(bool , error){
-	if err :=bcrypt.CompareHashAndPassword(ps.Hash, []byte(plaintext));
+	if err := bcrypt.CompareHashAndPassword(ps.Hash, []byte(plaintext));
 		err !=nil{
 			switch {
 			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
@@ -177,25 +177,22 @@ func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, plaintextP
 
 func (ps *PostresUserStore) GetUserByEmail(ctx context.Context, email string)(*User, error) {
 	user := &User{}
-	query := `SELECT email,password,username,level,total_score 
+	query := `SELECT id,email,password_hash,username,p_level,total_score 
 		          FROM users
 				  WHERE email = $1
 				  `
 	err := ps.db.QueryRowContext(ctx, query, email).Scan(
+		&user.Id,
 		&user.Email,
-		&user.Password,
+		&user.Password.Hash,
 		&user.Username,
 		&user.PlayerLevel,
 		&user.TotalScore,
 	)
 	// check for errors
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded){
-			return nil, errors.New("Context deadline exceeded")
-		}
-		if errors.Is(err, sql.ErrNoRows){
-			return nil, errors.New("Something went wrong")
-		}
+		// error could be sql.ErrNoRows or context.DeadlineExceeded
+		return nil, err 
 	}
 
 	return user, nil
