@@ -75,7 +75,6 @@ func login(ctx context.Context)(*store.User, *tokens.Token, error){
 		err !=nil{
            return nil,nil, fmt.Errorf("Invalid return body. Body")
 		}
-    fmt.Printf("User email: %s, token_hash: %v", envlope.User.Email, envlope.Token.Hash)
 	return envlope.User, envlope.Token, nil
 }
 

@@ -20,7 +20,7 @@ func(ps *Password) Set(plaintext string)(error){
 		fmt.Printf("Failed to hash password error: %v", err)
 		return err
 	}
-	ps.PlainText =&plaintext
+	ps.PlainText = &plaintext
 	ps.Hash = hash
 
 	return nil
@@ -88,7 +88,7 @@ type UserStore interface {
 	CreateUser(context.Context, *User) (*User, error)
 	GetUserById(ctx context.Context, id int) (*User, error)
 	GetUserByEmail(ctx context.Context, email string)(*User, error)
-	GetUserByToken(cts context.Context,scope, plaintextPassword string) (*User, error)
+	GetUserByToken(ctx context.Context, scope string, tokenHash []byte) (*User, error)
 }
 
 // constructor
@@ -141,7 +141,7 @@ func (ps *PostresUserStore) GetUserById(ctx context.Context, id int) (*User, err
 	return user, nil
 }
 
-func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, tokenHash []byte) (*User, error) {
+func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope string, tokenHash string) (*User, error) {
 	//query
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at
   			  FROM users u

@@ -34,7 +34,7 @@ func NewApplication()(*Application, error){
    } 
    // all handlers
    userHandler := api.NewUserHandler(userStore, tokenStore, logger)
-   middleware  := middleware.UserMiddleware{UserStore: userStore}
+   middleware  := middleware.UserMiddleware{UserStore: *userStore}
 
 
    //application 

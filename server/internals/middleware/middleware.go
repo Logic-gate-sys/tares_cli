@@ -12,7 +12,7 @@ import (
 
 
 type UserMiddleware struct {
-	UserStore      store.UserStore
+	UserStore      store.PostresUserStore
 }
 
 type userKey string 
@@ -35,20 +35,20 @@ func GetUser(r *http.Request) (*store.User) {
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 		w.Header().Add("Vary", "authorization")
-		authHeader := r.Header.Get("authorization")
-		if authHeader ==""{
+		authHeader := r.Header.Get("Authorization")
+		if authHeader =="" {
 			r = SetUser(r, store.AnonymousUser)
 		}
 		parts := strings.Split(authHeader, " ")
-		if len(parts) !=2 || parts[0]=="Bearer"{
-			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message":"Invalid token"})
+		if len(parts) !=2 || parts[0] == "Bearer" {
+			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token"})
 		}
-		ctx,cancel := context.WithTimeout(r.Context(), 5000 *time.Millisecond) // 5 seconds
+		ctx, cancel := context.WithTimeout(r.Context(), 2000 *time.Millisecond) // 2 seconds
 		defer cancel()
 
 		// get user token
 		token := parts[1]
-		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, token)
+		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope,token)
 		if err !=nil{
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
 			return 
