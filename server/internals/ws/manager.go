@@ -22,11 +22,7 @@ type roomManager struct {
    lobbyInbound  chan LobbyAction
 }
 
-var upgrader = &websocket.Upgrader{
-	 ReadBufferSize: socketBufferSize,
-	 WriteBufferSize: socketBufferSize,
-	 CheckOrigin: func(r *http.Request) bool {return true} ,
-	}
+
 func NewRoomManager()*roomManager{
 	rm := &roomManager{
 		 rooms:       make(map[string]*Room),
@@ -55,20 +51,21 @@ func(rm *roomManager) Run(){
 			delete(rm.lobbyClients, client)
 			close(client.inboundMessage)
 
-		case msg :=<- rm.lobbyInbound :
+		// if an event is sent to lobby
+		case msg := <- rm.lobbyInbound :
 			switch msg.Action.Action {
 			case "CREATE_ROOM":
 				// create room with capacity and name
 				name := msg.Action.Value["name"].(string)
-				capacity:= msg.Action.Value["capacity"].(int)
+				capacity := msg.Action.Value["capacity"].(int)
 				room := NewRoom(
 					WithCapacity(capacity),
 					WithName(name),
 				)
 				rm.Lock()
-				rm.rooms[room.id]= room
+				rm.rooms[room.id] = room
 				rm.Unlock()
-				go room.Run()
+				go room.Run() // main game run function 
 				
 				//move client from lobby to room
 				delete(rm.lobbyClients, msg.Client)
@@ -87,24 +84,23 @@ func(rm *roomManager) Run(){
 					room.join <- msg.Client
 				}else{
 					msg.Client.inboundMessage <- events.GameStateBroadcast{
-						Message: "Room not found",
+						Message: "No room with such id: "+roomId,
 					}
 				}
+
+			// to view all available rooms 
             case "GET_ROOMS":
-				var allRooms map[string]any
+				allRooms := []*Room{}
+				idx := 0
 				for _, room := range rm.rooms {
-					formatedRoom :=struct{
-						roomId   string 
-						name     string 
-						capacity  int 
-						isFull   bool
-					}{
-						roomId: room.id,
+					// only the fields relevant to user 
+					 toAdd := &Room{
+						id: room.id,
 						name: room.name,
 						capacity: room.capacity,
-						isFull: room.capacity ==len(room.clients),
 					}
-				allRooms[room.id] = formatedRoom
+			       allRooms[idx] = toAdd
+				   idx ++
 				}
 
 				msg.Client.inboundMessage <- events.GameStateBroadcast{
@@ -118,7 +114,18 @@ func(rm *roomManager) Run(){
 
 }
 
-	
+var (
+	socketBufferSize = 1024 // 1kb 
+	messageBufferSize = 1024 // 1kb 
+)
+
+
+var upgrader = &websocket.Upgrader{
+	 ReadBufferSize: socketBufferSize,
+	 WriteBufferSize: socketBufferSize,
+	 CheckOrigin: func(r *http.Request) bool {return true} ,
+	}
+
 // upgrade http request into a websocket connection 
 func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request){
 	user := middleware.GetUser(r)
@@ -137,12 +144,14 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request){
 		room: nil,
 		manager: rm,
 	}
+
 	// register client with lobby
      rm.lobbyJoin <- client
 	// client write  
 	go client.writeToClientPump()
 	// client read
 	go client.readFromClientPump()
+
+	// run manager run  function
+	go rm.Run()
 }
-// Help user find a room and connect to the room, then spawn the room's run 
-// Note: A cleints to make it this far have been authenticated and authorised

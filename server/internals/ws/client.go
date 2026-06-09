@@ -26,7 +26,7 @@ func (c *client) writeToClientPump() {
      // sent all inbound events through socket
      for inboundEvents := range c.inboundMessage{
         if err := c.socket.WriteJSON(inboundEvents);
-	    err !=nil{
+	    err != nil{
 		fmt.Printf("Failed to send data to client :%v", err)
 		break // 
 	   }
@@ -45,7 +45,7 @@ func (c *client) readFromClientPump() {
 	for {
 		var userAction events.PlayerAction 
 		if err := c.socket.ReadJSON(&userAction);
-		err !=nil{
+		err != nil{
 			c.inboundMessage <- events.GameStateBroadcast{
 		        Status: "INVALID PAYLOAD",
 		        Message: "Error, Invalid action provided, please try again",

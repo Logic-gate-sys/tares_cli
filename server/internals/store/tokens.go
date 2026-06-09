@@ -33,7 +33,6 @@ type TokenStore interface {
 }
 
 func (t *PostgresTokenStore) GetUserToken(ctx context.Context, user_id int ) (*tokens.Token, error){
-	// token 
 	var tk tokens.Token
 	// query 
      sqlQuery :=`SELECT token_hash, scope

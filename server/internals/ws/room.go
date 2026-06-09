@@ -156,17 +156,6 @@ func (r *Room) Run(){
    }
 }
 
-const (
-	socketBufferSize = 1024 // 1kb
-	messageBufferSize = 512 // 512 bytes
-)
-
-//  This func is a method on the room struct.
-//  Game room is asserted full if the number of clients connected are same as capacity
-func (rm *Room) isFull() bool {
-	return len(rm.clients) == int(rm.capacity)
-}
-
 
 
 

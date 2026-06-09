@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
@@ -24,13 +23,13 @@ func SetUser(r *http.Request, user *store.User) *http.Request {
 	return r.WithContext(ctx)
 }
 
-func GetUser(r *http.Request) *store.User {
+func GetUser(r *http.Request) (*store.User) {
 	user, ok := r.Context().Value(contextUserKey).(*store.User)
 	if !ok {
-		panic("Malicious request, back off")
+		panic("malicious actor, back off!")
 	}
-
-	return user 
+    // return value
+	return user
 }
 
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
@@ -44,7 +43,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 		if len(parts) !=2 || parts[0]=="Bearer"{
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message":"Invalid token"})
 		}
-		ctx,cancel :=context.WithTimeout(r.Context(), 1500 *time.Millisecond)
+		ctx,cancel := context.WithTimeout(r.Context(), 5000 *time.Millisecond) // 5 seconds
 		defer cancel()
 
 		// get user token
@@ -54,7 +53,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
 			return 
 		}
-		if user ==nil{
+		if user == nil{
 			utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":"User not found"})
 			return 	
 		}

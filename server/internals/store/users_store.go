@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -142,8 +141,7 @@ func (ps *PostresUserStore) GetUserById(ctx context.Context, id int) (*User, err
 	return user, nil
 }
 
-func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, plaintextPassword string) (*User, error) {
-	tokenHash := sha256.Sum256([]byte(plaintextPassword))
+func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope, tokenHash []byte) (*User, error) {
 	//query
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at
   			  FROM users u

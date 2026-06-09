@@ -27,7 +27,7 @@ func main() {
 		return
 	}
 	// connect authenticated user to socket 
-	header := make(http.Header)
+	header := http.Header{}
 	header.Set("Authorization", "Bearer "+string(authUser.Token.Hash))
 	conn,_, err := websocket.DefaultDialer.Dial(socketURL, header)
 	if err != nil {
@@ -36,8 +36,6 @@ func main() {
 	}
 	// close socket finally
 	defer conn.Close()
-	// connect the authenticate user to socker now
-
 
 	//::::::::::::::::::::::::USER & SERVER EVENTS(GAME):::::::::::::::::::::::::::::::::
 	done := make(chan struct{})

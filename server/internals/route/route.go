@@ -10,7 +10,6 @@ import (
 
 func SetupRoute(app *app.Application)*chi.Mux{
   router := chi.NewRouter()
-  //Sign up and sign in 
   router.Post("/users/signup", app.UserHandler.HandleUserSignup)
   router.Post("/user/login", app.UserHandler.HandleUserSignin )
 

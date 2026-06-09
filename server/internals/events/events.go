@@ -35,7 +35,7 @@ type GameStateBroadcast struct {
 	ScrambledWord string             `json:"scrambled_word"` // What players try to solve
 	Scores        map[string]int `json:"scores"`        // Track username -> score mapping` 
 	Message       string             `json:"message"`
-	Data          map[string]any  `json:"data"` // any optional data supplied in broadcast
+	Data          interface{}       `json:"data"` // any optional data supplied in broadcast
 }
 
 type Status string 

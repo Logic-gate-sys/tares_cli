@@ -15,7 +15,7 @@ import (
 
 
 
-type AuthUser struct {
+type authUser struct {
  User   *store.User `json:"user"`
  Token  *tokens.Token `json:"token"`
 }
@@ -69,18 +69,18 @@ func login(ctx context.Context)(*store.User, *tokens.Token, error){
 		fmt.Println(err)
 		return nil, nil, err
 	}
-	var envlope AuthUser 
+	var envlope authUser 
 
 	if err := json.Unmarshal(bytesResponse, &envlope);
 		err !=nil{
            return nil,nil, fmt.Errorf("Invalid return body. Body")
 		}
-    
+    fmt.Printf("User email: %s, token_hash: %v", envlope.User.Email, envlope.Token.Hash)
 	return envlope.User, envlope.Token, nil
 }
 
 // Combines login/signup to effectively authenticate a user and authorise them
-func Auth(ctx context.Context) (*AuthUser, error) {
+func Auth(ctx context.Context) (*authUser, error) {
 	for {
 		fmt.Println("1. Login")
 		fmt.Println("2. Signup")
@@ -115,14 +115,14 @@ func Auth(ctx context.Context) (*AuthUser, error) {
 						return nil, fmt.Errorf("signup succeeded, but subsequent login failed: %w", err)
 					}
 					
-					return &AuthUser{User: user, Token: token}, nil
+					return &authUser{User: user, Token: token}, nil
 				}
 				// other than that, failure has another cause
 				fmt.Printf("Login failed: %v\n", err)
 				continue
 			}
 			
-			return &AuthUser{User: user, Token: token}, nil
+			return &authUser{User: user, Token: token}, nil
 
 		case "2":
 			_, err := signup(ctx)
@@ -137,7 +137,7 @@ func Auth(ctx context.Context) (*AuthUser, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &AuthUser{User: user, Token: token}, nil
+			return &authUser{User: user, Token: token}, nil
 
 		case "3":
 			fmt.Println("Authentication cancelled")

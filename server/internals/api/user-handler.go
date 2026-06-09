@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
@@ -117,7 +116,6 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 		utils.WriteJSON(w, 400, utils.Envlope{"error":"Bad request"})
 		return 
 	}
-    uh.Logger.Printf("email: %ss , password: %s \n", usr.Email, usr.Password)
 	// add context for logging and memory management
 	 ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
 	 defer cancel()
@@ -198,7 +196,7 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 			}
 		}
 		// else no errors 
-		utils.WriteJSON(w,200, utils.Envlope{"user": res.user, "token":res.token})
+		utils.WriteJSON(w, 200, utils.Envlope{"user": res.user, "token": res.token})
 		uh.Logger.Printf("User logged in [traceId = %s] :%v", traceID, res)
         
 	case <- ctx.Done():
