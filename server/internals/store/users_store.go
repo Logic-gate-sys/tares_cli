@@ -146,13 +146,13 @@ func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope string, tok
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at
   			  FROM users u
   			  INNER JOIN tokens t ON t.user_id = u.id
-  			  WHERE t.hash = $1 AND t.scope = $2 and t.expiry > $3`
+  			  WHERE t.token_hash = $1 AND t.scope = $2 and t.expiry > Now()`
 	// user struct
 	user := &User{
 		Password: Password{},
 	}
 
-	err := s.db.QueryRowContext(ctx, query, tokenHash[:], scope, time.Now()).Scan(
+	err := s.db.QueryRowContext(ctx, query, tokenHash[:], scope).Scan(
 		&user.Id,
 		&user.Username,
 		&user.Email,

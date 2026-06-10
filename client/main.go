@@ -12,8 +12,9 @@ import (
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
-const socketURL = "ws://localhost:8081/ws/rooms"
 
+
+const socketURL = "ws://localhost:8081/ws/rooms"
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -32,10 +33,11 @@ func main() {
 
 	if err != nil {
 		fmt.Println("Error! Failed to connect to game socket server")
-		if resp !=nil{
+		if resp !=nil {
 			buf := make([]byte, 1024)
 			n,_ := resp.Body.Read(buf)
-			fmt.Printf("Server error body: %s \n", string(buf[:n]))
+			fmt.Printf("Details: %s \n", string(buf[:n]))
+			return
 		}
 		panic(err)
 	}
