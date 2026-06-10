@@ -27,3 +27,4 @@ func SetupRoute(app *app.Application)*chi.Mux{
   // export router
   return router 
 }
+The fun and creativity of word-scramble games never dies , but it's still stuck in the old age of static games, outside the terminal. Tares cli brings it back 'web socket' delivered with multi-player support all in the terminal. This is opensource and upon v1 release 
