@@ -23,7 +23,7 @@ type Room struct {
 	name   string  // room name
 	capacity  int  // number of active-players 
 	inBoundEvents chan events.PlayerAction // events client sent to server room 
-	broadCastsEvents  chan events.GameStateBroadcast // events to be broadcasted to clients
+	outboundEvents  chan events.GameStateBroadcast // events to be broadcasted to clients
 	join    chan *client // for a client request to join a room 
 	leave   chan *client // for a client requesting to leave a room 
 	clients map[*client]bool // holds all clients currently in a room 
@@ -54,7 +54,7 @@ func NewRoom(opts ...RoomOption) *Room {
 	leave: make(chan *client),
 	clients: make(map[*client]bool),
 	inBoundEvents: make(chan events.PlayerAction),
-	broadCastsEvents: make(chan events.GameStateBroadcast),
+	outboundEvents: make(chan events.GameStateBroadcast),
 	startGame: make(chan bool),
 	pauseGame: make(chan bool),
 	stopGame: make(chan bool),
@@ -126,12 +126,12 @@ func (r *Room) Run(){
 				r.timer.Stop()
 		}
 	   // generate and broadcast stats
-	   r.broadCastsEvents <- r.gameEngine.GenerateStatsReport()
+	   r.outboundEvents <- r.gameEngine.GenerateStatsReport()
 
 		// if a game message comes in through to the broadcastEvents channel
 		// game message can be letters generated for round, round winner announcement, 
 		// or even game over announcement : Engine will sent this kind of message
-		case broadcastMsg := <- r.broadCastsEvents : 
+		case broadcastMsg := <- r.outboundEvents : 
 			// brooad cast the message to all clients 
 			for client := range r.clients{
 				select{

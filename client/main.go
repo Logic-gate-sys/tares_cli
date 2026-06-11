@@ -8,19 +8,17 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
 
-
 const socketURL = "ws://localhost:8081/ws/rooms"
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("::::: TARES WORD-SCRAMBLE <<-->> CHAMPIONSHIP <<-->> GLITTERS :::::\n Follow the prompts below to continue")
+	fmt.Println("::::: TARES <<-->> CHAMPIONSHIP <<-->> HUNTERS :::::\n Follow the prompts below to continue")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authUser, err := helpers.Auth(ctx)
@@ -47,20 +45,19 @@ func main() {
 	// close socket finally
 	defer conn.Close()
 
-	//:::::::::::::::::::::::: USER & SERVER EVENTS(GAME) :::::::::::::::::::::::::::::::::
+	// --------------- USER & SERVER EVENTS(GAME) -------------------
 	done := make(chan struct{})
-	//Options for user
+    // any in-game broadcast sent to user (client)
 	go func(){
 		defer close(done)
 		 for {
-	        var broadcast events.GameStateBroadcast
+	        var broadcast events.GameStateBroadcast // game broadcast message
 			if err := conn.ReadJSON(&broadcast);
 	            err != nil{
 		       fmt.Println("Failed to read broadcast message from socker server ")
 			   break 
 	        }
-		
-			// if broadcasted event is not empty 
+		    // if event produces a no errors
 			if broadcast.RoomId !=""{
                  fmt.Printf(
 		        "\n--- [LIVE UPDATE] ---"+
@@ -77,7 +74,6 @@ func main() {
 		}
 	}()
 	     
-	//:::::::::::::::::::: USER ACTIONS ::::::::::::::::::::::
 	for {
 	os.Stdout.WriteString(">>>")
 	// scann should not falter 

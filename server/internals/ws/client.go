@@ -9,8 +9,9 @@ import (
 // client holds the state of any connect client at any time
 type client struct {
 	name  string // username 
-	socket *websocket.Conn // socket connection by which the client communicates
-	inboundMessage chan events.GameStateBroadcast // things coming from server to client
+	socket *websocket.Conn // socket connection by which the client communicates over the network with server
+	inboundMessage chan events.PlayerAction //coming from browser to server
+	outboundMessages chan events.GameStateBroadcast //going from server to client
 	room *Room
 	manager *roomManager
 }
@@ -20,16 +21,18 @@ type client struct {
 // Take message in clients inbound channel and shovel it down to connected client e.g browser
 func (c *client) writeToClientPump() {
 	//defer closing socket 
-	defer func(){
-		c.socket.Close()
-	}()
+	defer c.socket.Close()
+
      // sent all inbound events through socket
-     for inboundEvents := range c.inboundMessage{
-        if err := c.socket.WriteJSON(inboundEvents);
-	    err != nil{
-		fmt.Printf("Failed to send data to client :%v", err)
-		break // 
-	   }
+	 select {
+	 case event := <- c.outboundMessages :
+		if err  := c.socket.WriteJSON(event); 
+			err != nil{
+				fmt.Printf("Failed to send broadcast message to client: %v", err)
+				return 
+			}
+	
+	 default: // do nothing 
 	 }
 }
 
@@ -45,13 +48,14 @@ func (c *client) readFromClientPump() {
 	for {
 		var userAction events.PlayerAction 
 		if err := c.socket.ReadJSON(&userAction);
+		// alert client of error
 		err != nil{
-			c.inboundMessage <- events.GameStateBroadcast{
+			c.outboundMessages <- events.GameStateBroadcast {
 		        Status: "INVALID PAYLOAD",
 		        Message: "Error, Invalid action provided, please try again",
 			}
 		}
-	    // put read json/struct on outbound channel
+	    // put read json on the inbound channel
 		c.room.inBoundEvents <- userAction
 	}
 }

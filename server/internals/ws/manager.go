@@ -13,9 +13,10 @@ type LobbyAction struct{
 	Client *client
 	Action events.PlayerAction
 }
+
 type roomManager struct {
    sync.RWMutex
-   rooms  map[string]*Room
+   rooms  map[string]*Room // map of all rooms in this manager 
    lobbyClients  map[*client]bool // all clients with no rooms yet
    lobbyLeave   chan *client
    lobbyJoin    chan *client // client with no room joins room manaer through this 
@@ -25,7 +26,7 @@ type roomManager struct {
 
 func NewRoomManager()*roomManager{
 	rm := &roomManager{
-		 rooms:       make(map[string]*Room),
+		rooms:       make(map[string]*Room),
         lobbyClients: make(map[*client]bool),
         lobbyJoin:    make(chan *client),
         lobbyLeave:   make(chan *client),
@@ -136,7 +137,8 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request){
 	}
 	// close socket connection 
 	defer socket.Close()
-    // Client 
+
+    // Create client from authenticated user  
 	client := &client{
 		name: user.Username,
 		socket: socket,
