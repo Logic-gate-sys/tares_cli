@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -28,7 +30,8 @@ func main() {
 	}
 	// connect authenticated user to socket 
 	header := make(http.Header)
-	header.Set("Authorization", "Bearer "+ string(authUser.Token.Hash))
+	hexTokenStr:= hex.EncodeToString(authUser.Token.Hash)
+	header.Set("Authorization", "Bearer "+ hexTokenStr)
 	conn,resp, err := websocket.DefaultDialer.Dial(socketURL, header)
 
 	if err != nil {

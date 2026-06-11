@@ -2,8 +2,7 @@ package middleware
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"time"
@@ -38,7 +37,6 @@ func GetUser(r *http.Request) (*store.User) {
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 		w.Header().Add("Vary", "Authorization")
-		fmt.Printf("AUTHENTICATION MIDDLEWARE HTI: <<<--------")
 
 		authHeader := r.Header.Get("Authorization")
 		if authHeader =="" {
@@ -46,19 +44,18 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return 
 		}
-		fmt.Printf("AUTHENTICATION MIDDLEWARE HTI: <<<--------")
 		parts := strings.Split(authHeader, " ")
 		if len(parts) !=2 || parts[0] != "Bearer" {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token"})
 			return 
 		}
+		// create timeout context with 2 seconds max
 		ctx, cancel := context.WithTimeout(r.Context(), 2000 *time.Millisecond) // 2 seconds
 		defer cancel()
 
 		// get user token
-		token := parts[1]
-		tokenHash :=sha256.Sum256([]byte(token[:]))
-		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, tokenHash[:])
+		token, err := hex.DecodeString(parts[1])
+		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, token[:])
 		if err !=nil{
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
 			return 
