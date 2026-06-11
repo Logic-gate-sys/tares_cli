@@ -1,72 +1,33 @@
------------------- TARES GAME CLI  ----------------------
-┌─────────────────────────────────────────────────────────┐
-│                    TARES SYSTEM                         │
-│                                                         │
-│   ┌──────────────┐          ┌──────────────┐            │
-│   │ tares-client │          │ tares-client │            │
-│   │  (Player 1)  │          │  (Player 2)  │            │
-│   │              │          │              │            │
-│   │  Terminal UI │          │  Terminal UI │            │
-│   └──────┬───────┘          └──────┬───────┘            │
-│          │ WebSocket               │ WebSocket          │
-│          │                         │                    │
-│          ▼                         ▼                    │
-│   ┌─────────────────────────────────────────┐           │
-│   │              tares-server               │           │
-│   │                                         │           │
-│   │  ┌─────────┐      ┌─────────────────┐   │           │
-│   │  │ Room    │      │  RoomManager    │   │           │
-│   │  │ Manager │─────►│  matches players│   │           │
-│   │  └─────────┘      │  into rooms     │   │           │
-│   │                   └─────────────────┘   │           │
-│   │  ┌──────────────────────────────────┐   │           │
-│   │  │           Game Room              │   │           │
-│   │  │                                  │   │           │
-│   │  │  player1 ◄──────────────────►    │   │           │
-│   │  │  player2   shared game state  │  │   │           │
-│   │  │            (mutex protected)  │  │   │           │
-│   │  │                               │  │   │           │
-│   │  │  timer goroutine running      │  │   │           │
-│   │  │  independently                │  │   │           │
-│   │  └──────────────────────────────────┘   │           │
-│   │                                         │           │
-│   │  REST API: /stats /leaderboard          │           │
-│   └─────────────────────────────────────────┘           │
-└─────────────────────────────────────────────────────────┘
+# Tares CLI
 
-# How the components should interract together 
-┌─────────────────────────────────────────────────────────────┐
-│                     TARES SERVER                            │
-│                                                             │
-│  ┌─────────────────────┐    ┌─────────────────────────┐     │
-│  │     HTTP REST API   │    │    WebSocket Server      │    │
-│  │                     │    │                          │    │
-│  │  POST /auth/register│    │  ws://host/game          │    │
-│  │  POST /auth/login   │    │                          │    │
-│  │  GET  /leaderboard  │    │  - real-time game state  │    │
-│  │  GET  /stats/:name  │    │  - word submissions      │    │
-│  │                     │    │  - score updates         │    │
-│  └──────────┬──────────┘    └───────────┬──────────────┘    │
-│             │                           │                   │
-│             └─────────────┬─────────────┘                   │
-│                           │                                 │
-│                           ▼                                 │
-│             ┌─────────────────────────┐                     │
-│             │      Game Engine        │                     │
-│             │                         │                     │
-│             │  - Room management      │                     │
-│             │  - Word validation      │                     │
-│             │  - Score calculation    │                     │
-│             │  - Timer management     │                     │
-│             │  - Matchmaking          │                     │
-│             └─────────────┬───────────┘                     │
-│                           │                                 │
-│                           ▼                                 │
-│                  ┌─────────────────┐                        │
-│                  │    Database     │                        │
-│                  │                 │                        │
-│                  │  - Users        │                        │
-│                  │  - Game history │                        │
-│                  │  - Leaderboard  │                        │
-│                  └─────────────────┘                        │
-└─────────────────────────────────────────────────────────────┘
+Terminal-based multiplayer word scramble game built in Go.
+
+## Architecture
+
+```mermaid
+flowchart TB
+	subgraph Clients
+		C1[tares-client\nPlayer 1]
+		C2[tares-client\nPlayer 2]
+	end
+
+	subgraph Server[tares-server]
+		RM[Room Manager\nmatch players into rooms]
+		WS[WebSocket Server]
+		API[REST API\n/auth/login /auth/register\n/leaderboard /stats]
+		GE[Game Engine]
+		DB[(Database)]
+	end
+
+	C1 -- WebSocket --> WS
+	C2 -- WebSocket --> WS
+	WS --> RM
+	RM --> GE
+	API --> GE
+	GE --> DB
+```
+
+## Notes
+
+- GitHub renders Mermaid diagrams directly.
+- If a renderer does not support Mermaid, it will fall back to showing the fenced block as text.

@@ -28,7 +28,7 @@ func main() {
 	}
 	// connect authenticated user to socket 
 	header := make(http.Header)
-	header.Set("Authorization", "Bearer "+ authUser.Token.PlainText)
+	header.Set("Authorization", "Bearer "+ string(authUser.Token.Hash))
 	conn,resp, err := websocket.DefaultDialer.Dial(socketURL, header)
 
 	if err != nil {
