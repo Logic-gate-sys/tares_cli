@@ -141,7 +141,7 @@ func (ps *PostresUserStore) GetUserById(ctx context.Context, id int) (*User, err
 	return user, nil
 }
 
-func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope string, tokenHash string) (*User, error) {
+func (s *PostresUserStore) GetUserByToken(ctx context.Context, scope string, tokenHash []byte) (*User, error) {
 	//query
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.bio, u.created_at
   			  FROM users u

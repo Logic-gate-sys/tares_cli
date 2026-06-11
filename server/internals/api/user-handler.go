@@ -165,7 +165,8 @@ func(uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request){
 			ch <- authResponse{error: err}
 			uh.Logger.Printf("Error getting user token: %v", err)
 		}
-		if userToken == nil {
+		// if plaintext or token is empty
+		if userToken == nil || userToken.PlainText =="" {
 			userToken, err = uh.tokenStore.CreateUserToken(user.Id, 24 *time.Hour, tokens.AuthScope)
 			if err !=nil{
 				ch <- authResponse{error: err}

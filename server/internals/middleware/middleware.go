@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"strings"
@@ -56,7 +57,8 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 
 		// get user token
 		token := parts[1]
-		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope,token)
+		tokenHash :=sha256.Sum256([]byte(token[:]))
+		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, tokenHash[:])
 		if err !=nil{
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
 			return 
@@ -76,7 +78,7 @@ func (um *UserMiddleware) RequireAuth(next http.Handler) http.HandlerFunc{
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 		user := GetUser(r)
 		if user.IsAnonymousUser(){
-			utils.WriteJSON(w, http.StatusForbidden, utils.Envlope{"message":"Unauthorised, get out of here!"})
+			utils.WriteJSON(w, http.StatusForbidden, utils.Envlope{"message":"Unauthorised, back-off !"})
 			return
 		}
 		next.ServeHTTP(w, r)

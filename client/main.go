@@ -22,18 +22,18 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authUser, err := helpers.Auth(ctx)
-	if err !=nil{
+	if err != nil{
 		fmt.Printf("User exited with : %v \n", err)
 		return
 	}
 	// connect authenticated user to socket 
-	header := http.Header{}
-	header.Set("Authorization", "Bearer "+string(authUser.Token.Hash))
+	header := make(http.Header)
+	header.Set("Authorization", "Bearer "+ authUser.Token.PlainText)
 	conn,resp, err := websocket.DefaultDialer.Dial(socketURL, header)
 
 	if err != nil {
-		fmt.Println("Error! Failed to connect to game socket server")
-		if resp !=nil {
+		fmt.Println("Failed to connect to game socket server")
+		if resp != nil {
 			buf := make([]byte, 1024)
 			n,_ := resp.Body.Read(buf)
 			fmt.Printf("Details: %s \n", string(buf[:n]))
