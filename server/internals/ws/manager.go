@@ -84,7 +84,7 @@ func(rm *roomManager) Run(){
 					msg.Client.room = room 
 					room.join <- msg.Client
 				}else{
-					msg.Client.inboundMessage <- events.GameStateBroadcast{
+					msg.Client.outboundMessages <- events.GameStateBroadcast{
 						Message: "No room with such id: "+roomId,
 					}
 				}
@@ -104,7 +104,7 @@ func(rm *roomManager) Run(){
 				   idx ++
 				}
 
-				msg.Client.inboundMessage <- events.GameStateBroadcast{
+				msg.Client.outboundMessages <- events.GameStateBroadcast{
 					Message:"Available rooms",
 					Data: allRooms,
 
@@ -142,7 +142,7 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request){
 	client := &client{
 		name: user.Username,
 		socket: socket,
-		inboundMessage:  make(chan events.GameStateBroadcast, messageBufferSize),
+		inboundMessage:  make(chan events.PlayerAction, messageBufferSize),
 		room: nil,
 		manager: rm,
 	}
