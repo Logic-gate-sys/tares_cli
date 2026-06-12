@@ -136,7 +136,7 @@ func (r *Room) Run(){
 			for client := range r.clients{
 				select{
                 // trying sending to client to validate , they're still available 
-				case client.inboundMessage <- broadcastMsg:
+				case client.outboundMessages <- broadcastMsg:
 					// send message to client
 					log.Printf("Sent message to client, waiting for browser to pick it up")
 			    // if not , client is definately not available, so :

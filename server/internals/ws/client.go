@@ -6,7 +6,7 @@ import (
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
-// client holds the state of any connect client at any time
+// Holds the state of any connected device (e.g browser, terminal) at any time
 type client struct {
 	name  string // username 
 	socket *websocket.Conn // socket connection by which the client communicates over the network with server
@@ -18,7 +18,7 @@ type client struct {
 
 
 
-// Take message in clients inbound channel and shovel it down to connected client e.g browser
+// Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser
 func (c *client) writeToClientPump() {
 	//defer closing socket 
 	defer c.socket.Close()
