@@ -88,6 +88,7 @@ The client will prompt you to:
 2. Signup
 3. Exit
 
+
 After authentication, it opens a WebSocket connection to:
 
 ```text
