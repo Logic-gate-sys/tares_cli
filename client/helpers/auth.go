@@ -35,7 +35,6 @@ func signup(ctx context.Context) (*store.User, error) {
 
 	bytesResponse, err := MakeHttpRequest(ctx, data)
 	if err != nil {
-		fmt.Println("API call failed: ", err)
 		return nil, err
 	}
 	var user store.User
@@ -63,7 +62,6 @@ func login(ctx context.Context) (*store.User, *tokens.Token, error) {
 	}
 	bytesResponse, err := MakeHttpRequest(ctx, data)
 	if err != nil {
-		fmt.Println("Failed to login: ", err)
 		return nil, nil, err
 	}
 	var envlope authUser

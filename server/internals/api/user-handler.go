@@ -135,7 +135,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 	}
 	// response to channel
 	type authResponse struct {
-		error  error
+		error error
 		user  *store.User
 		token *tokens.Token
 	}
@@ -147,67 +147,58 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		// error could be : contextTimeout, or sql.NoRows
 		if err != nil {
 			ch <- authResponse{error: err}
-			uh.Logger.Printf("Failed to get user by email: %v", err)
 			return
 		}
 		// compare their password
 		matches, err := user.Password.Matches(*usr.Password.PlainText)
 		if err != nil {
 			ch <- authResponse{error: err}
-			uh.Logger.Printf("Error trying to verify password: %v", err)
 			return
 		}
 		if !matches {
 			ch <- authResponse{error: errors.New("Invalid credential")}
-			uh.Logger.Printf("Password matches: %t", matches)
 			return
 		}
-
 		// get user token
 		userToken, err := uh.tokenStore.GetUserToken(ctx, user.Id)
 		if err != nil {
 			ch <- authResponse{error: err}
-			uh.Logger.Printf("Error getting user token: %v", err)
 		}
-		// if plaintext or token is empty
+		// if plaintext or token is empty, it means user needs a new token
 		if userToken == nil {
 			userToken, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}
-				uh.Logger.Printf("Error creating usertoken: %v", err)
 				return
 			}
 		}
 		// send full data to channel
 		ch <- authResponse{error: nil, user: user, token: userToken}
-		uh.Logger.Printf("User token %v", userToken)
 	}()
 
 	// find  validate user exists
 	select {
 	case res := <-ch:
 		if res.error != nil {
-			if errors.Is(res.error, sql.ErrNoRows) {
-				uh.Logger.Printf("Details: %v", res.error)
-				if strings.Contains(res.error.Error(), "Invalid credential") {
-					utils.WriteJSON(w, http.StatusUnauthorized, utils.Envlope{"error": "Internal server error"})
-					uh.Logger.Printf("Unauthorised [traceId = %s] : %v", traceID, res.error)
-					return
-				} else {
-					// this is some generalised error
-					utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error": "Internal server error"})
-					uh.Logger.Printf("Server error [traceId = %s] : %v", traceID, res.error)
-					return
-				}
+			// if no matching rows is found
+			if errors.Is(res.error, sql.ErrNoRows) || strings.Contains(res.error.Error(), "Invalid credential") {
+				uh.Logger.Printf("Not Found -> [traceId = %s] : %v", traceID, res.error)
+				utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error": res.error.Error()})
+				return
 			}
+			// this is some generalised error
+			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error": res.error.Error()})
+			uh.Logger.Printf("Server Error -> [traceId = %s] : %v", traceID, res.error)
+			return
 		}
-		// else no errors
-		utils.WriteJSON(w, 200, utils.Envlope{"user": res.user, "token": res.token})
-		uh.Logger.Printf("User logged in [traceId = %s] :%v", traceID, res)
+		// else everything is successful
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": res.user, "token": res.token})
+		uh.Logger.Printf("User logged in -> [traceId = %s] :%v", traceID, res)
+		return
 
 	case <-ctx.Done():
 		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error": "Request timeout"})
-		log.Printf("Timedout [traceID = %s]: %v", traceID, ctx.Err())
+		log.Printf("Request Timedout -> [traceID = %s]: %v", traceID, ctx.Err())
 		return
 	}
 }
