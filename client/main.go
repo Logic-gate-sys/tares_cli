@@ -9,14 +9,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
 
 const socketURL = "ws://localhost:8081/ws/rooms"
-
+// main entry point of cliet 
 func main() {
 	fmt.Println("::::: TARES <<-->> CHAMPIONSHIP <<-->> HUNTERS :::::\n Follow the prompts below to continue")
 	ctx, cancel := context.WithCancel(context.Background())
@@ -31,7 +30,7 @@ func main() {
 	hexToken := hex.EncodeToString(authUser.Token.Hash)
 	header.Set("Authorization", "Bearer "+hexToken)
 	conn, resp, err := websocket.DefaultDialer.Dial(socketURL, header)
-
+    // 
 	if err != nil {
 		fmt.Println("Failed to connect to game socket server")
 		if resp != nil {
@@ -45,7 +44,7 @@ func main() {
 	fmt.Println("Game server joined successful")
 	// close socket finally
 	defer conn.Close()
-
+	
 	// --------------- USER & SERVER EVENTS(GAME) -----------------
 	type status string
 	const (
@@ -65,6 +64,7 @@ func main() {
 	readStatus := make(chan messageStatus)
 	writeStatus := make(chan messageStatus)
 
+	// go pumps 
 	go func() {
 		defer close(done)
 		var broadcast events.GameStateBroadcast // game broadcast message

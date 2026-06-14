@@ -20,25 +20,21 @@ type client struct {
 
 // Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser
 func (c *client) writeToClientPump() {
-	//defer closing socket 
-	defer c.socket.Close()
-
      // sent all inbound events through socket
-	 select {
-	 case event := <- c.outboundMessages :
-		if err  := c.socket.WriteJSON(event); 
-			err != nil{
-				fmt.Printf("Failed to send broadcast message to client: %v", err)
-				return 
-			}
-	
-	 default: // do nothing 
+	select {
+		case event := <- c.outboundMessages :
+			if err  := c.socket.WriteJSON(event); 
+				err != nil{
+					fmt.Printf("Failed to send broadcast message to client: %v", err)
+					return 
+				}
+		
+		default: // do nothing 
 	 }
 }
 
 // Read message from client e.g browser, sent it to inBoundEvents channel of room
 func (c *client) readFromClientPump() {
-	// defer close 
 	defer func(){
 		c.room.leave <- c
 		c.socket.Close()

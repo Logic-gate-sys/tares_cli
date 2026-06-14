@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strings"
-
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 )
