@@ -22,7 +22,7 @@ type Room struct {
 	id     string   // room unique id 
 	name   string  // room name
 	capacity  int  // number of active-players 
-	inBoundEvents chan events.PlayerAction // events client sent to server room 
+	inBoundEvents chan events.IngameUserAction // events client sent to server room 
 	outboundEvents  chan events.GameStateBroadcast // events to be broadcasted to clients
 	join    chan *client // for a client request to join a room 
 	leave   chan *client // for a client requesting to leave a room 
@@ -53,7 +53,7 @@ func NewRoom(opts ...RoomOption) *Room {
 	join:  make(chan *client),
 	leave: make(chan *client),
 	clients: make(map[*client]bool),
-	inBoundEvents: make(chan events.PlayerAction),
+	inBoundEvents: make(chan events.IngameUserAction),
 	outboundEvents: make(chan events.GameStateBroadcast),
 	startGame: make(chan bool),
 	pauseGame: make(chan bool),
@@ -136,7 +136,7 @@ func (r *Room) Run(){
 			for client := range r.clients{
 				select{
                 // trying sending to client to validate , they're still available 
-				case client.outboundMessages <- broadcastMsg:
+				case client.inGameToClientServer <- broadcastMsg:
 					// send message to client
 					log.Printf("Sent message to client, waiting for browser to pick it up")
 			    // if not , client is definately not available, so :
@@ -144,7 +144,7 @@ func (r *Room) Run(){
 				default :
 				    delete(r.clients, client)
 					// close client's inbound channel
-					close(client.inboundMessage)
+					close(client.inGameToServerMessage)
 				} 
 				
 			}

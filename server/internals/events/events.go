@@ -1,19 +1,29 @@
 package events
 
-type Action string 
-const (
-	SendWord  Action = "SEND_WORD"
-	PauseGame Action = "PAUSE_GAME"
-	StopGame  Action = "STOP_GAME"
-	ResumeGame Action = "RESUME_GAME"
-	SignIn      Action ="SIGN_IN"
-	SignOut    Action = "SIGN_OUT"
-	SignUp     Action ="SIGN_UP"
-)
+import "encoding/json"
 
-type PlayerAction struct {
+type lobbyAction string 
+const (
+	CreateRoom lobbyAction = "CREATE_ROOM"
+	JoinRoom lobbyAction = "JOIN_ROOM"
+	GetRooms  lobbyAction ="GET_ROOMS"
+)
+type gameRoomAction string 
+const (
+	SendWord  gameRoomAction = "SEND_WORD"
+	PauseGame gameRoomAction = "PAUSE_GAME"
+	StopGame  gameRoomAction = "STOP_GAME"
+	ResumeGame gameRoomAction = "RESUME_GAME"
+)
+type InlobbyUserAction struct {
 	User     *Player 
-	Action   Action  `json:"action"`
+	Action    lobbyAction `json:"action"`
+	Value    map[string]any  `json:"value"` 
+}
+
+type IngameUserAction struct {
+	User     *Player 
+	Action   gameRoomAction  `json:"action"`
 	Value    map[string]any  `json:"value"` 
 }
 
@@ -33,7 +43,7 @@ type GameStateBroadcast struct {
 	Status        Status             `json:"status"` // e.g., "WAITING", "PLAYING", "PAUSED"
 	TimeLeft      int                `json:"time_left"`     // Countdown timer in seconds
 	ScrambledWord string             `json:"scrambled_word"` // What players try to solve
-	Scores        map[string]int `json:"scores"`        // Track username -> score mapping` 
+	Scores        map[string]int     `json:"scores"`        // Track username -> score mapping` 
 	Message       string             `json:"message"`
 	Data          interface{}       `json:"data"` // any optional data supplied in broadcast
 }
@@ -46,3 +56,14 @@ const (
 	Pause     Status ="PAUSED"
 	Stopped   Status ="STOPPED"
 )
+
+type message string
+const (
+	Ingame message ="ingame_msg" // related to lobby
+	Inlobby message ="inlobby_msg" // related to in game
+)
+// any message from client or server is in this format 
+type RawMessage struct {
+	MsgType     message        `json:"msg_type"`
+	RawJson    json.RawMessage `json:"payload"` // holdes raw json to delay decodeing
+}
