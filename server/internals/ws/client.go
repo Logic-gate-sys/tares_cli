@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
@@ -18,6 +17,7 @@ type client struct {
 	inGameToClientServer   chan events.GameStateBroadcast //messages going from server to client
 	room                   *Room
 	manager                *roomManager
+	// should I add acess tokens here?
 }
 
 // Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser

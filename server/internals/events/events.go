@@ -8,12 +8,12 @@ const (
 	JoinRoom lobbyAction = "JOIN_ROOM"
 	GetRooms  lobbyAction ="GET_ROOMS"
 )
-type gameRoomAction string 
+type GameRoomAction string 
 const (
-	SendWord  gameRoomAction = "SEND_WORD"
-	PauseGame gameRoomAction = "PAUSE_GAME"
-	StopGame  gameRoomAction = "STOP_GAME"
-	ResumeGame gameRoomAction = "RESUME_GAME"
+	SendWord  GameRoomAction = "SEND_WORD"
+	PauseGame GameRoomAction = "PAUSE_GAME"
+	StopGame  GameRoomAction = "STOP_GAME"
+	ResumeGame GameRoomAction = "RESUME_GAME"
 )
 type InlobbyUserAction struct {
 	User     *Player 
@@ -23,12 +23,12 @@ type InlobbyUserAction struct {
 
 type IngameUserAction struct {
 	User     *Player 
-	Action   gameRoomAction  `json:"action"`
+	Action   GameRoomAction  `json:"action"`
 	Value    map[string]any  `json:"value"` 
 }
 
 type Player struct {
-	Id       string    `json:"id"`
+	Id       string `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"-"`
 	Email    string `json:"email"`

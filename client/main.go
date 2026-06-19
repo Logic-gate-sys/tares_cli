@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -19,7 +18,7 @@ const socketURL = "ws://localhost:8081/ws/rooms"
 
 // main entry point of cliet
 func main() {
-	fmt.Println("::::: TARES <<-->> CHAMPIONSHIP <<-->> HUNTERS :::::\n Follow the prompts below to continue")
+	fmt.Println("::::: TARES <<->> CHAMPIONSHIP <<->> HUNTERS :::::\n Follow the prompts below to continue")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authUser, err := helpers.Auth(ctx)
@@ -53,7 +52,7 @@ func main() {
 		sent        status = "Sent"
 		pending     status = "Pending"
 		invalidType status = "Invalid"
-		read        state  = "Read"
+		read        status  = "Read"
 	)
 	type messageStatus struct {
 		statusText status
@@ -73,7 +72,7 @@ func main() {
 		rawJson json.RawMessage // delay decode
 	}
 
-	// all reads 
+	// all reads
 	go func() {
 		defer close(done)
 		for {
@@ -124,7 +123,6 @@ func main() {
 			}
 		}
 	}()
-
 	// client writes in game & inlobby
 	go func() {
 		for {
@@ -152,16 +150,37 @@ func main() {
 				defer writer.Close()
 
 			// if message hits inlobby user action
-			case action := <- inLobbyAction:
+			case action := <-inLobbyAction:
+				writer, err := conn.NextWriter(websocket.TextMessage)
+				if err !=nil{
+					fmt.Println("Failed to write to server")
+					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
+					continue
+				}
+				jsonData, err := json.Marshal(&action)
+				if err !=nil{
+					fmt.Printf("Failed to marshal write json: %", err)
+				}
+				msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonData}
+				if err := json.NewEncoder(writer).Encode(msg); err != nil {
+					fmt.Printf("Failed to send data buffer to server")
+					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
+					continue
+				}
+				writeStatus <- messageStatus{statusText: sent, detail: "In lobby user action sent"}
 
 			default: // do nothing
+				writeStatus <-messageStatus{statusText: invalidType, detail: "Action is invalid"}
 			}
 		}
 	}()
 
 	// Play & Server game messages combined
+	/* Write & read actions in main loop :
+	   - main-loop put messages on write channels -> write routines pick up -> send to server
+	   - read routines -> read from server -> put on read channels -> main loop picks up show to user 
+	*/
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("\n")
 	for {
 		os.Stdout.WriteString(">>>")
 		fmt.Println("You've successfully joined the game lobby room...")
@@ -178,39 +197,36 @@ func main() {
 				fmt.Println("Scanner can't scan")
 			}
 			// exit loop
-			break
+			panic(scanner.Err())
 		}
-		//Player actions
+		//user inputs 
 		var input string
 		input = strings.TrimSpace(scanner.Text())
-		var shouldSend bool
 		if input == "" {
 			continue
 		}
 		// switching on input entered
-		var playerAction events.IngameUserAction
 		switch input {
-			// read action 
+			// user wants to view available rooms <- read
 			case "1":
-				playerAction = events.InlobbyUserAction {
+			 	fmt.Println("Searching for available rooms. Please wait...")
+				inLobbyAction <- events.InlobbyUserAction{
+					User: &events.Player{},
 					Action: events.GetRooms,
-					Value:  map[string]string{"":""}, // needs no value 
-				}
-				shouldSend = true
-				inLobbyAction <- playerAction
-
-
+			    }
+							
 			default:
-				fmt.Println("Unknow action, try this : 'SEND_ANSWER'")
-				shouldSend = false
+				fmt.Println("Unknow action, try this : enter a valid option")
+				continue
 		}
 
-	// ending game
-	select {
-	case <-done:
-		fmt.Println("Bringing Game to a close...")
-		return
-	default: // do nothing
+		// ending game
+		select {
+		case <-done:
+			fmt.Println("Bringing Game to a close...")
+			return
+		default: // do nothing
 
+		}
 	}
 }

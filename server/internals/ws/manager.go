@@ -1,12 +1,12 @@
 package ws
 
 import (
+	"log"
+	"net/http"
+	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
-	"log"
 	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
-	"ne/htt"
-	"sync"
 )
 
 type LobbyAction struct {
@@ -54,11 +54,11 @@ func (rm *roomManager) Run() {
 		// if an event is sent to lobby
 		case clientAction := <-rm.lobbyInbound:
 			switch clientAction.Action.Action {
-			case events.gameRoomAction(events.CreateRoom):
+			case events.CreateRoom:
 				// create room with capacity and name
 				name := clientAction.Action.Value["name"].(string)
 				capacity := clientAction.Action.Value["capacity"].(int)
-				room := NewRoom(	WithCapacity(capacity),WithName(name))
+				room := NewRoom(WithCapacity(capacity), WithName(name))
 				rm.Lock()
 				rm.rooms[room.id] = room
 				rm.Unlock()
@@ -67,31 +67,31 @@ func (rm *roomManager) Run() {
 				delete(rm.lobbyClients, clientAction.Client)
 				clientAction.Client.room = room
 				room.join <- clientAction.Client
-				
-            // incase user wants to join an available room
-			case events.gameRoomAction(events.JoinRoom):
+
+				// incase user wants to join an available room
+			case events.JoinRoom:
 				roomId := clientAction.Action.Value["roomId"].(string)
 				rm.Lock()
 				room, exists := rm.rooms[roomId]
 				rm.Unlock()
-				// if room exists and is not full 
-				if exists && room.capacity >= len(room) {
+				// if room exists and is not full
+				if exists && room.capacity >= len(room.clients) {
 					//move client from lobby to room
 					delete(rm.lobbyClients, clientAction.Client)
 					clientAction.Client.room = room
 					room.join <- clientAction.Client
-				} else if room.capacity == len(room){
+				} else if room.capacity == len(room.clients) {
 					clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
 						Message: "Room is full, look for another room",
 					}
-				}else {
+				} else {
 					clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
 						Message: "No room with such id: " + roomId,
 					}
 				}
-				
+
 				// to view all available rooms
-			case events.gameRoomAction(events.GetRooms):
+			case events.GetRooms:
 				allRooms := []*Room{}
 				idx := 0
 				for _, room := range rm.rooms {
@@ -104,7 +104,7 @@ func (rm *roomManager) Run() {
 					allRooms[idx] = toAdd
 					idx++
 				}
-				// push all rooms to client 
+				// push all rooms to client
 				clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
 					Message: "Available rooms",
 					Data:    allRooms,
@@ -123,7 +123,7 @@ var (
 var upgrader = &websocket.Upgrader{
 	ReadBufferSize:  socketBufferSize,
 	WriteBufferSize: socketBufferSize,
-	CheckOrigin:     func(r *http.Request) bool { return true },// CORS 
+	CheckOrigin:     func(r *http.Request) bool { return true }, // CORS
 }
 
 // upgrade http request into a websocket connection
@@ -137,20 +137,23 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	}
 	// close socket connection
 	defer socket.Close()
-	er socket.Close()
-    // Create client from authenticated user
-	client             := &client{
-		name: u          ser.Username,
-		socket: socket, 
-		inboundMessage:  make(chan events.PlayerAction),
-		outbo            undMessages: make(chan events.GameStateBroadcast),
-		room: ni         l,
-		manager: rm,
+	defer socket.Close()
+	// Create client from authenticated user
+	clt := &client{
+		name:                   user.Username,
+		socket:                 socket,
+		inLobbyToClientMessage: make(chan events.GameStateBroadcast),
+		inLobbyToServerMessage: make(chan events.InlobbyUserAction),
+		inGameToServerMessage:  make(chan events.IngameUserAction),
+		inGameToClientServer:   make(chan events.GameStateBroadcast),
+		room:                   nil,
+		manager:                rm,
 	}
 	// run room & put client on lobbyJoin chan
-	m.Run()
-     rm.lobbyJoin <- client
+	rm.Run()
+	rm.lobbyJoin <- clt
+
 	// start client read & write pumps
-	go client.writeToClientPump()
-	go client.readFromClientPump()
+	go clt.writeToClientPump()
+	go clt.readFromClientPump()
 }
