@@ -3,6 +3,7 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
@@ -12,7 +13,7 @@ type client struct {
 	name                   string          // connect client's name
 	socket                 *websocket.Conn // socket connection by which the client communicates over the network with server
 	inLobbyToServerMessage chan events.InlobbyUserAction
-	inLobbyToClientMessage chan events.GameStateBroadcast
+	inLobbyToClientMessage chan events.LobbyStateBroadcast
 	inGameToServerMessage  chan events.IngameUserAction   //messages coming from browser to server
 	inGameToClientServer   chan events.GameStateBroadcast //messages going from server to client
 	room                   *Room
@@ -44,15 +45,17 @@ func (c *client) writeToClientPump() {
 				fmt.Println("failed to marshal json")
 				continue
 			}
-			msg := events.RawMessage{MsgType: events.Inlobby, RawJson:jsonEvnt}
-			if err := c.socket.WriteJSON(msg); err != nil {
+			msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonEvnt}
+			// attempt writting to client
+			if err := c.socket.WriteJSON(msg); 
+				err != nil {
 				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
 			}
-			
-		default: // do nothing
-		if err := c.socket.WriteJSON(map[string]string{"error":"invalid message type"}); err != nil {
-			fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
-		}
+
+		default: 
+			if err := c.socket.WriteJSON(map[string]string{"error": "invalid message type"}); err != nil {
+				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
+			}
 		}
 	}
 

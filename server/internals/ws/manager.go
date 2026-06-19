@@ -31,8 +31,6 @@ func NewRoomManager() *roomManager {
 		lobbyLeave:   make(chan *client),
 		lobbyInbound: make(chan LobbyAction),
 	}
-	// routine for run
-	go rm.Run()
 	return rm
 }
 
@@ -48,44 +46,44 @@ func (rm *roomManager) Run() {
 		case client := <-rm.lobbyLeave:
 			// remove client from lobby and close their inbound channels
 			delete(rm.lobbyClients, client)
-			close(client.inGameToServerMessage)
-			close(client.inGameToClientServer)
+			close(client.inLobbyToServerMessage)
+			close(client.inLobbyToClientMessage)
 
 		// if an event is sent to lobby
-		case clientAction := <-rm.lobbyInbound:
-			switch clientAction.Action.Action {
+		case action := <-rm.lobbyInbound:
+			switch action.Action.Action {
 			case events.CreateRoom:
 				// create room with capacity and name
-				name := clientAction.Action.Value["name"].(string)
-				capacity := clientAction.Action.Value["capacity"].(int)
+				name := action.Action.Value["name"].(string)
+				capacity := action.Action.Value["capacity"].(int)
 				room := NewRoom(WithCapacity(capacity), WithName(name))
 				rm.Lock()
-				rm.rooms[room.id] = room
+				rm.rooms[room.Id] = room
 				rm.Unlock()
 				go room.Run() // main game run function
 				//move client from lobby to room
-				delete(rm.lobbyClients, clientAction.Client)
-				clientAction.Client.room = room
-				room.join <- clientAction.Client
+				delete(rm.lobbyClients, action.Client)
+				action.Client.room = room
+				room.join <- action.Client
 
 				// incase user wants to join an available room
 			case events.JoinRoom:
-				roomId := clientAction.Action.Value["roomId"].(string)
+				roomId := action.Action.Value["roomId"].(string)
 				rm.Lock()
 				room, exists := rm.rooms[roomId]
 				rm.Unlock()
 				// if room exists and is not full
-				if exists && room.capacity >= len(room.clients) {
+				if exists && room.Capacity >= len(room.Clients) {
 					//move client from lobby to room
-					delete(rm.lobbyClients, clientAction.Client)
-					clientAction.Client.room = room
-					room.join <- clientAction.Client
-				} else if room.capacity == len(room.clients) {
-					clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
+					delete(rm.lobbyClients, action.Client)
+					action.Client.room = room
+					room.join <- action.Client
+				} else if room.Capacity == len(room.Clients) {
+					action.Client.inGameToClientServer <- events.GameStateBroadcast{
 						Message: "Room is full, look for another room",
 					}
 				} else {
-					clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
+					action.Client.inGameToClientServer <- events.GameStateBroadcast{
 						Message: "No room with such id: " + roomId,
 					}
 				}
@@ -94,18 +92,22 @@ func (rm *roomManager) Run() {
 			case events.GetRooms:
 				allRooms := []*Room{}
 				idx := 0
+				rm.Lock()
 				for _, room := range rm.rooms {
 					// only the fields relevant to user
-					toAdd := &Room{
-						id:       room.id,
-						name:     room.name,
-						capacity: room.capacity,
+					toAdd := Room{
+						Id:       room.Id,
+						Name:     room.Name,
+						Capacity: room.Capacity,
 					}
-					allRooms[idx] = toAdd
+					// room has a field that contains mutex so must be appended by reference to  preserve values
+					allRooms = append(allRooms, &toAdd)
 					idx++
 				}
+				rm.Unlock()
 				// push all rooms to client
-				clientAction.Client.inGameToClientServer <- events.GameStateBroadcast{
+				action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
+					Type:    "Get Rooms",
 					Message: "Available rooms",
 					Data:    allRooms,
 				}
@@ -142,7 +144,7 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	clt := &client{
 		name:                   user.Username,
 		socket:                 socket,
-		inLobbyToClientMessage: make(chan events.GameStateBroadcast),
+		inLobbyToClientMessage: make(chan events.LobbyStateBroadcast),
 		inLobbyToServerMessage: make(chan events.InlobbyUserAction),
 		inGameToServerMessage:  make(chan events.IngameUserAction),
 		inGameToClientServer:   make(chan events.GameStateBroadcast),
@@ -150,7 +152,7 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 		manager:                rm,
 	}
 	// run room & put client on lobbyJoin chan
-	rm.Run()
+	go rm.Run()
 	rm.lobbyJoin <- clt
 
 	// start client read & write pumps
