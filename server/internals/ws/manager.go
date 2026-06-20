@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
