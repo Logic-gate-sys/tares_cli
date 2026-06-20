@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
@@ -24,14 +25,13 @@ type roomManager struct {
 }
 
 func NewRoomManager() *roomManager {
-	rm := &roomManager{
+	return &roomManager{
 		rooms:        make(map[string]*Room),
 		lobbyClients: make(map[*client]bool),
 		lobbyJoin:    make(chan *client),
 		lobbyLeave:   make(chan *client),
 		lobbyInbound: make(chan LobbyAction),
 	}
-	return rm
 }
 
 // manages lobby state(creating, joining, leaving, discovering rooms)
@@ -39,12 +39,13 @@ func (rm *roomManager) Run() {
 	// run loop
 	for {
 		select {
+		// when client joins lobby channel
 		case client := <-rm.lobbyJoin:
 			rm.lobbyClients[client] = true
-			log.Printf("Client joined lobby: %s", client.name)
+			log.Printf("Client: %s joined lobby", client.name)
 
+		// when client leaves lobby
 		case client := <-rm.lobbyLeave:
-			// remove client from lobby and close their inbound channels
 			delete(rm.lobbyClients, client)
 			close(client.inLobbyToServerMessage)
 			close(client.inLobbyToClientMessage)
@@ -60,13 +61,12 @@ func (rm *roomManager) Run() {
 				rm.Lock()
 				rm.rooms[room.Id] = room
 				rm.Unlock()
-				go room.Run() // main game run function
-				//move client from lobby to room
-				delete(rm.lobbyClients, action.Client)
-				action.Client.room = room
+				// leave lobby and join room
+				rm.lobbyLeave <- action.Client
+				go room.Run()
 				room.join <- action.Client
 
-				// incase user wants to join an available room
+			// incase user wants to join an available room
 			case events.JoinRoom:
 				roomId := action.Action.Value["roomId"].(string)
 				rm.Lock()
@@ -75,15 +75,15 @@ func (rm *roomManager) Run() {
 				// if room exists and is not full
 				if exists && room.Capacity >= len(room.Clients) {
 					//move client from lobby to room
-					delete(rm.lobbyClients, action.Client)
+					rm.lobbyLeave <- action.Client
 					action.Client.room = room
 					room.join <- action.Client
 				} else if room.Capacity == len(room.Clients) {
-					action.Client.inGameToClientServer <- events.GameStateBroadcast{
+					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
 						Message: "Room is full, look for another room",
 					}
 				} else {
-					action.Client.inGameToClientServer <- events.GameStateBroadcast{
+					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
 						Message: "No room with such id: " + roomId,
 					}
 				}
@@ -92,7 +92,6 @@ func (rm *roomManager) Run() {
 			case events.GetRooms:
 				allRooms := []*Room{}
 				idx := 0
-				rm.Lock()
 				for _, room := range rm.rooms {
 					// only the fields relevant to user
 					toAdd := Room{
@@ -104,7 +103,6 @@ func (rm *roomManager) Run() {
 					allRooms = append(allRooms, &toAdd)
 					idx++
 				}
-				rm.Unlock()
 				// push all rooms to client
 				action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
 					Type:    "Get Rooms",
@@ -121,7 +119,6 @@ var (
 	socketBufferSize  = 1024 // 1kb
 	messageBufferSize = 1024 // 1kb
 )
-
 var upgrader = &websocket.Upgrader{
 	ReadBufferSize:  socketBufferSize,
 	WriteBufferSize: socketBufferSize,

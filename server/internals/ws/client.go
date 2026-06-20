@@ -23,6 +23,9 @@ type client struct {
 
 // Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser
 func (c *client) writeToClientPump() {
+	defer func() {
+		c.socket.Close()
+	}()
 	// sent all inbound events through socket
 	for {
 		select {
@@ -51,7 +54,7 @@ func (c *client) writeToClientPump() {
 
 		// in a lobby broadcast comes in
 		case event, ok := <-c.inLobbyToClientMessage:
-		    // if manager closes lobby To client channel 
+			// if manager closes lobby To client channel
 			if !ok {
 				return
 			}
