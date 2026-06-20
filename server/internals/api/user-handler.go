@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/server/internals/store"
 	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
@@ -25,6 +26,7 @@ type UserHandler struct {
 	Logger     *log.Logger
 }
 
+// types
 type key string
 
 const traceKey key = key("Create-TraceId")
@@ -109,8 +111,8 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 }
 
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {
+	//decode user input
 	var usr store.User
-
 	if err := json.NewDecoder(r.Body).Decode(&usr); err != nil {
 		uh.Logger.Printf("Invalid data provided: %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"error": "Bad request"})
@@ -146,6 +148,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		// error could be : contextTimeout, or sql.NoRows
 		if err != nil {
 			ch <- authResponse{error: err}
+			fmt.Println("User not found!")
 			return
 		}
 		// compare their password
@@ -160,8 +163,14 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		}
 		// get user token
 		userToken, err := uh.tokenStore.GetUserToken(ctx, user.Id)
+		//issue with token
 		if err != nil {
-			ch <- authResponse{error: err}
+			if errors.Is(err, sql.ErrNoRows) {
+				uh.Logger.Printf("User has no auth tokens currently in their name: creating one")
+			} else {
+				ch <- authResponse{error: err}
+			}
+
 		}
 		// if plaintext or token is empty, it means user needs a new token
 		if userToken == nil {
