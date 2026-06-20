@@ -76,16 +76,15 @@ func main() {
 		msgType string          // type e.g 'ingame-msg' or 'inlobby_msg'
 		rawJson json.RawMessage // delay decode
 	}
-
+	
 	// all reads
 	go func() {
 		defer close(done)
 		for {
 			messageType, reader, err := conn.NextReader()
 			if err != nil { // go out
-				fmt.Printf("Failed to read next message: %v", err)
-				readStatus <- messageStatus{statusText: failed, detail: err.Error()}
-				return
+				fmt.Printf("Failed create next reader: %v", err)
+				panic(err)
 			}
 			if messageType != websocket.TextMessage {
 				fmt.Printf("Received and non-text message")
@@ -122,12 +121,10 @@ func main() {
 				readStatus <- messageStatus{statusText: read, detail: "Read successful"}
 				lobbyMsg <- inlobbyMsg
 
-			// default case
-			default:
-				readStatus <- messageStatus{statusText: invalidType, detail: "invalid json type"}
 			}
 		}
 	}()
+	
 	// client writes in game & inlobby
 	go func() {
 		for {
@@ -136,8 +133,7 @@ func main() {
 				writer, err := conn.NextWriter(websocket.TextMessage)
 				if err != nil {
 					fmt.Println("Failed to send action")
-					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
-					continue
+					panic(err)
 				}
 				// action to send to server
 				jsonData, err := json.Marshal(&action)
@@ -150,7 +146,7 @@ func main() {
 					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
 					continue
 				}
-
+				writer.Close()
 				writeStatus <- messageStatus{statusText: sent, detail: "Message sent successfully"}
 
 			// if message hits inlobby user action
@@ -171,10 +167,9 @@ func main() {
 					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
 					continue
 				}
+				writer.Close()
 				writeStatus <- messageStatus{statusText: sent, detail: "In lobby user action sent"}
 
-			default: // do nothing
-				writeStatus <- messageStatus{statusText: invalidType, detail: "Action is invalid"}
 			}
 		}
 	}()
@@ -239,9 +234,8 @@ func main() {
 			}
 			wrt.Flush()
 
-			
 		default:
-			fmt.Println("Unknow action, try this : enter a valid option")
+			fmt.Println("Unknow action, try this: enter a valid option")
 			continue
 		}
 

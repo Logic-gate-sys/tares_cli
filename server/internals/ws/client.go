@@ -26,55 +26,72 @@ func (c *client) writeToClientPump() {
 	// sent all inbound events through socket
 	for {
 		select {
-		// if an ingame broadcast comes in
-		case event := <-c.inGameToClientServer:
+		case event, ok := <-c.inGameToClientServer:
+			// if manager closed in game to client channel
+			if !ok {
+				return
+			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
 				fmt.Println("failed to marshal json")
-				continue
+				return
 			}
 			msg := events.RawMessage{MsgType: events.Ingame, RawJson: jsonEvnt}
-			if err := c.socket.WriteJSON(msg); err != nil {
+			writer, err := c.socket.NextWriter(websocket.TextMessage)
+			if err != nil {
+				fmt.Println("Writer failed, connect again later")
+				return
+			}
+			if err := json.NewEncoder(writer).Encode(&msg); err != nil {
 				fmt.Printf("Failed to send broadcast message to client: %v", err)
 				return
 			}
+			// close write to push data to client when done encoding
+			writer.Close()
+
 		// in a lobby broadcast comes in
-		case event := <-c.inLobbyToClientMessage:
+		case event, ok := <-c.inLobbyToClientMessage:
+		    // if manager closes lobby To client channel 
+			if !ok {
+				return
+			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
 				fmt.Println("failed to marshal json")
-				continue
+				return
 			}
 			msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonEvnt}
 			// attempt writting to client
-			if err := c.socket.WriteJSON(msg); 
-				err != nil {
+			writer, err := c.socket.NextWriter(websocket.TextMessage)
+			if err != nil {
+				fmt.Println("Writer failed, please try and ocnnect again")
+				return
+			}
+			if err := json.NewEncoder(writer).Encode(msg); err != nil {
 				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
 			}
-
-		default: 
-			if err := c.socket.WriteJSON(map[string]string{"error": "invalid message type"}); err != nil {
-				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
-			}
+			writer.Close()
 		}
-	}
 
+	}
 }
 
 // Read message from client e.g browser, sent it to inBoundEvents channel of room
 func (c *client) readFromClientPump() {
 	defer func() {
-		c.room.leave <- c
 		c.socket.Close()
 	}()
-	// read actions from client. Action could be inLobbyAction or inRoomAction
+
 	for {
+		//blocks until a message arrives
 		messageType, reader, err := c.socket.NextReader()
 		if err != nil {
-			panic("Reading failed, restart server & check what's wrong")
+			fmt.Println("Reader failed. Please restart the server", "Details: ", err.Error())
+			return
 		}
 		if messageType != websocket.TextMessage {
-			panic("Invalid message type")
+			fmt.Println("Invalid message type")
+			continue
 		}
 		// generic envlope to decode into first
 		var msg events.RawMessage
@@ -104,4 +121,5 @@ func (c *client) readFromClientPump() {
 			c.socket.WriteJSON(map[string]string{"error": "Invalid player action"})
 		}
 	}
+
 }

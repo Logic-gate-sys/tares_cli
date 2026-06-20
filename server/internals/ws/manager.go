@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
@@ -41,7 +42,7 @@ func (rm *roomManager) Run() {
 		select {
 		case client := <-rm.lobbyJoin:
 			rm.lobbyClients[client] = true
-			log.Printf("Client joined lobby: %s, waiting for room...", client.name)
+			log.Printf("Client joined lobby: %s", client.name)
 
 		case client := <-rm.lobbyLeave:
 			// remove client from lobby and close their inbound channels
@@ -137,9 +138,6 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic("Socket upgrade failed ")
 	}
-	// close socket connection
-	defer socket.Close()
-	defer socket.Close()
 	// Create client from authenticated user
 	clt := &client{
 		name:                   user.Username,
