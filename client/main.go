@@ -66,8 +66,8 @@ func main() {
 	done := make(chan struct{})
 	inGameAction := make(chan events.IngameUserAction) // player actions in-game
 	inLobbyAction := make(chan events.InlobbyUserAction)
-	readStatus := make(chan messageStatus)  // what a read amounts to e.g error, pending, failed etc
-	writeStatus := make(chan messageStatus) // what write amouts to e.g error, pending, failed etc
+	readStatus := make(chan messageStatus)     // what a read amounts to e.g error, pending, failed etc
+	writeStatus := make(chan messageStatus, 5) // what write amouts to e.g error, pending, failed etc
 	lobbyMsg := make(chan events.LobbyStateBroadcast)
 	gameMsg := make(chan events.GameStateBroadcast) // server sent broadcast events
 
@@ -76,7 +76,7 @@ func main() {
 		msgType string          // type e.g 'ingame-msg' or 'inlobby_msg'
 		rawJson json.RawMessage // delay decode
 	}
-	
+
 	// all reads
 	go func() {
 		defer close(done)
@@ -124,7 +124,7 @@ func main() {
 			}
 		}
 	}()
-	
+
 	// client writes in game & inlobby
 	go func() {
 		for {
@@ -153,9 +153,9 @@ func main() {
 			case action := <-inLobbyAction:
 				writer, err := conn.NextWriter(websocket.TextMessage)
 				if err != nil {
-					fmt.Println("Failed to write to server")
+					fmt.Println("Next writer failed, returning...")
 					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
-					continue
+					return
 				}
 				jsonData, err := json.Marshal(&action)
 				if err != nil {
@@ -167,8 +167,10 @@ func main() {
 					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
 					continue
 				}
+				// flush writter
 				writer.Close()
 				writeStatus <- messageStatus{statusText: sent, detail: "In lobby user action sent"}
+				fmt.Println("REACHED END OF SEND <-----")
 
 			}
 		}
