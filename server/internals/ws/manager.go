@@ -56,17 +56,18 @@ func (rm *roomManager) Run() {
 			case events.CreateRoom:
 				// create room with capacity and name
 				name := action.Action.Value["name"].(string)
-				capacity := action.Action.Value["capacity"].(int)
-				room := NewRoom(WithCapacity(capacity), WithName(name))
-				fmt.Printf("Name: %s, Capacity: %d", name, capacity)
+				capacity, ok := action.Action.Value["capacity"].(float64)
+				if !ok {
+					fmt.Println("Invalid capacity values")
+					continue
+				}
+				room := NewRoom(WithCapacity(int(capacity)), WithName(name))
 				rm.Lock()
 				rm.rooms[room.Id] = room
 				rm.Unlock()
 				// leave lobby and join room
-				rm.lobbyLeave <- action.Client
 				go room.Run()
 				room.join <- action.Client
-				fmt.Println("SUCCESSFULLY CREATED ROOM : <---")
 
 			// incase user wants to join an available room
 			case events.JoinRoom:
@@ -77,7 +78,6 @@ func (rm *roomManager) Run() {
 				// if room exists and is not full
 				if exists && room.Capacity > len(room.Clients) {
 					//move client from lobby to room
-					rm.lobbyLeave <- action.Client
 					room.join <- action.Client
 					action.Client.room = room
 

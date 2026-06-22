@@ -75,81 +75,18 @@ func NewRoom(opts ...RoomOption) *Room {
 // Run is the core loop for messages delivery via channel/ clients.
 // Also takes message from client to engine etc
 func (r *Room) Run() {
-	// start game engine loop once, when room starts running
-	// respond to leave or join room request
 	for {
-		//start game
 		select {
-		case <-r.startGame:
-			// These are the conditions for a game to start:
-			// 1. Signle player: start timer down to 30 seconds when user request play
-			// 2. Multiplayer : when room capacity is full, start timer-down 30 seconds
-		case <-r.stopGame:
-			r.timer.Stop()
-
-		case <-r.pauseGame:
-			r.timer.Pause()
-
-		default:
-			// do nothin
-		}
-		select {
-		// if a client wants to join room
 		case client := <-r.join:
 			r.Clients[client] = true
+			client.manager.lobbyLeave <- client
 			log.Printf("Client: %s joined room: %s", client.name, r.Name)
 
-		// if client wants to leave room
+			
 		case client := <-r.leave:
-			// remove client from room
 			delete(r.Clients, client)
+			close(client.inGameToClientServer)
 			log.Printf("Client left room: %s", client.name)
-
-			// When events moves:  server <- client
-		case action := <-r.inboundEvents:
-			switch action.Action {
-			case "START_GAME":
-				// ALL GAME ROOM LOGIC HERE
-			case "SEND_WORD":
-				val, exists := action.Value["word"].(string)
-				if exists {
-					score, err := r.gameEngine.ScoreWord(val, action.User.Id, engine.Easy)
-					if err == nil {
-						// go routine to update player score
-						go r.gameEngine.UpdatePlayerScore(action.User.Id, score)
-					}
-				}
-
-			case "PAUSE_GAME":
-				r.timer.Pause()
-			case "STOP_GAME":
-				r.timer.Stop()
-			}
-			// generate and broadcast stats
-			r.outBoundEvents <- r.gameEngine.GenerateStatsReport()
-
-		// if a game message comes in through to the broadcastEvents channel
-		// game message can be letters generated for round, round winner announcement,
-		// or even game over announcement : Engine will sent this kind of message
-		case broadcastMsg := <-r.outBoundEvents:
-			// brooad cast the message to all clients
-			for client := range r.Clients {
-				select {
-				// trying sending to client to validate , they're still available
-				case client.inGameToClientServer <- broadcastMsg:
-					// send message to client
-					log.Printf("Sent message to client, waiting for browser to pick it up")
-					// if not , client is definately not available, so :
-				//close their send channels and remove them from the room
-				default:
-					delete(r.Clients, client)
-				}
-
-			}
 		}
-		// client actions
-		// select {
-
-		//   }
 	}
 }

@@ -124,7 +124,6 @@ func main() {
 				}
 				// pass read text
 				lobbyMsg <- lobbyMessage{status: read, msg: inlobbyMsg}
-				fmt.Println("MESSAGE IS NOT PUT ON GAME MESSAGE CHANNEL <--- ")
 			}
 		}
 	}()
@@ -185,10 +184,10 @@ func main() {
 	*/
 	scanner := bufio.NewScanner(os.Stdin)
 	wrt := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
+	fmt.Println("You've successfully joined the game lobby room...")
+	fmt.Println("A few more actions to consider: ")
 	for {
 		os.Stdout.WriteString(">>>")
-		fmt.Println("You've successfully joined the game lobby room...")
-		fmt.Println("A few more actions to consider: ")
 		fmt.Println("1. View Available Rooms")
 		fmt.Println("2. Select Room ")
 		fmt.Println("3. Create Room ")
@@ -264,7 +263,7 @@ func main() {
 				Action: events.CreateRoom,
 				Value:  map[string]any{"name": name, "capacity": capacity}}
 			inLobbyAction <- payload
-
+			// is sent message okay
 			sentMsg, ok := <-lobbyMsg
 			if !ok {
 				fmt.Println("Lobby message closed, no hope of re-open, closign client")
@@ -275,6 +274,7 @@ func main() {
 			} else {
 				fmt.Printf("Room creation successful. Name: %s, Capacity: %d", name, capacity)
 			}
+
 		default:
 			fmt.Println("Unknow action, try this: enter a valid option")
 			continue
