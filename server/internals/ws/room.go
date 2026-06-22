@@ -50,7 +50,7 @@ func WithCapacity(capacity int) RoomOption {
 func NewRoom(opts ...RoomOption) *Room {
 	r := &Room{
 		Name:           "Unnamed",
-		Capacity:       10, // by default , 10 max capacity
+		Capacity:       5, // by default , 5 max capacity
 		join:           make(chan *client),
 		leave:          make(chan *client),
 		Clients:        make(map[*client]bool),

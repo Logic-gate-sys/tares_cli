@@ -107,7 +107,7 @@ func (c *client) readFromClientPump() {
 			}
 			// send to lobby
 			c.manager.lobbyInbound <- LobbyAction{Client: c, Action: inlobbyMsg}
-
+			
 		// in game messsage to should go to room inbound channel
 		case events.Ingame:
 			var ingameMsg events.IngameUserAction

@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -57,6 +58,7 @@ func (rm *roomManager) Run() {
 				name := action.Action.Value["name"].(string)
 				capacity := action.Action.Value["capacity"].(int)
 				room := NewRoom(WithCapacity(capacity), WithName(name))
+				fmt.Printf("Name: %s, Capacity: %d", name, capacity)
 				rm.Lock()
 				rm.rooms[room.Id] = room
 				rm.Unlock()
@@ -64,6 +66,7 @@ func (rm *roomManager) Run() {
 				rm.lobbyLeave <- action.Client
 				go room.Run()
 				room.join <- action.Client
+				fmt.Println("SUCCESSFULLY CREATED ROOM : <---")
 
 			// incase user wants to join an available room
 			case events.JoinRoom:

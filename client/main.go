@@ -52,10 +52,10 @@ func main() {
 	// --------------- USER & SERVER EVENTS(GAME) -----------------
 	type status string
 	const (
-		failed      status = "Failed"
-		sent        status = "Sent"
-		pending     status = "Pending"
-		read        status = "Read"
+		failed  status = "Failed"
+		sent    status = "Sent"
+		pending status = "Pending"
+		read    status = "Read"
 	)
 
 	type lobbyMessage struct {
@@ -78,7 +78,13 @@ func main() {
 		msgType string          // type e.g 'ingame-msg' or 'inlobby_msg'
 		rawJson json.RawMessage // delay decode
 	}
-
+	defer func() {
+		close(done)
+		close(inGameAction)
+		close(inLobbyAction)
+		close(lobbyMsg)
+		close(gameMsg)
+	}()
 	// all reads
 	go func() {
 		for {
@@ -152,7 +158,7 @@ func main() {
 				writer, err := conn.NextWriter(websocket.TextMessage)
 				if err != nil {
 					fmt.Println("Next writer failed, returning...")
-					lobbyMsg <- lobbyMessage{status:failed}
+					lobbyMsg <- lobbyMessage{status: failed}
 					return
 				}
 				jsonData, err := json.Marshal(&action)
@@ -185,7 +191,8 @@ func main() {
 		fmt.Println("A few more actions to consider: ")
 		fmt.Println("1. View Available Rooms")
 		fmt.Println("2. Select Room ")
-		fmt.Println("3. Exit")
+		fmt.Println("3. Create Room ")
+		fmt.Println("4. Exit")
 		fmt.Print("Enter option (1-3): \n")
 		// scann should not falter
 		if !scanner.Scan() {
@@ -232,6 +239,42 @@ func main() {
 			}
 			wrt.Flush()
 
+			// when user wants to create room
+		case "3":
+			var name string
+			var capacity int
+			for {
+				fmt.Print("Enter room name: ")
+				fmt.Print("\n")
+				_, err := fmt.Scanln(&name)
+				if err != nil {
+					continue
+				}
+				fmt.Print("Enter room capacity: ")
+				fmt.Print("\n")
+				_, err = fmt.Scanln(&capacity)
+				if err != nil {
+					fmt.Println("Invalid input!. Capacity must be uint8")
+					continue
+				}
+				break
+			}
+			fmt.Println("Creating room...")
+			payload := events.InlobbyUserAction{
+				Action: events.CreateRoom,
+				Value:  map[string]any{"name": name, "capacity": capacity}}
+			inLobbyAction <- payload
+
+			sentMsg, ok := <-lobbyMsg
+			if !ok {
+				fmt.Println("Lobby message closed, no hope of re-open, closign client")
+				return
+			}
+			if sentMsg.status != sent {
+				fmt.Println("Failed to create room")
+			} else {
+				fmt.Printf("Room creation successful. Name: %s, Capacity: %d", name, capacity)
+			}
 		default:
 			fmt.Println("Unknow action, try this: enter a valid option")
 			continue
