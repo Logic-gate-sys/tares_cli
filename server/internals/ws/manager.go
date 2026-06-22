@@ -47,7 +47,6 @@ func (rm *roomManager) Run() {
 		// when client leaves lobby
 		case client := <-rm.lobbyLeave:
 			delete(rm.lobbyClients, client)
-			close(client.inLobbyToServerMessage)
 			close(client.inLobbyToClientMessage)
 
 		// if an event is sent to lobby
@@ -139,8 +138,6 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 		name:                   user.Username,
 		socket:                 socket,
 		inLobbyToClientMessage: make(chan events.LobbyStateBroadcast),
-		inLobbyToServerMessage: make(chan events.InlobbyUserAction),
-		inGameToServerMessage:  make(chan events.IngameUserAction),
 		inGameToClientServer:   make(chan events.GameStateBroadcast),
 		room:                   nil,
 		manager:                rm,

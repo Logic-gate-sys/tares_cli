@@ -11,10 +11,8 @@ import (
 // Holds the state of any connected device (e.g browser, terminal) at any time
 type client struct {
 	name                   string          // connect client's name
-	socket                 *websocket.Conn // socket connection by which the client communicates over the network with server
-	inLobbyToServerMessage chan events.InlobbyUserAction
+	socket                 *websocket.Conn // socket connection by which the client communicates over the network
 	inLobbyToClientMessage chan events.LobbyStateBroadcast
-	inGameToServerMessage  chan events.IngameUserAction   //messages coming from browser to server
 	inGameToClientServer   chan events.GameStateBroadcast //messages going from server to client
 	room                   *Room
 	manager                *roomManager
@@ -84,7 +82,6 @@ func (c *client) readFromClientPump() {
 	defer func() {
 		c.socket.Close()
 	}()
-
 	for {
 		//blocks until a message arrives
 		messageType, reader, err := c.socket.NextReader()
@@ -110,15 +107,16 @@ func (c *client) readFromClientPump() {
 				c.socket.WriteJSON(map[string]string{"error": err.Error()})
 			}
 			// send to lobby
-			c.inLobbyToServerMessage <- inlobbyMsg
+			c.manager.lobbyInbound <- LobbyAction{Client: c, Action: inlobbyMsg}
 
+		// in game messsage to should go to room inbound channel
 		case events.Ingame:
 			var ingameMsg events.IngameUserAction
 			if err := json.Unmarshal(msg.RawJson, &ingameMsg); err != nil {
 				c.socket.WriteJSON(map[string]string{"error": err.Error()})
 			}
 			// put on ingame action
-			c.inGameToServerMessage <- ingameMsg
+			c.room.inboundEvents <- ingameMsg
 
 		default:
 			c.socket.WriteJSON(map[string]string{"error": "Invalid player action"})

@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"strings"
 	"text/tabwriter"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -19,7 +18,6 @@ import (
 )
 
 const socketURL = "ws://localhost:8081/ws/rooms"
-
 // main entry point of cliet
 func main() {
 	fmt.Println("::::: TARES <<->> CHAMPIONSHIP <<->> HUNTERS :::::\n Follow the prompts below to continue")
@@ -71,7 +69,7 @@ func main() {
 	lobbyMsg := make(chan events.LobbyStateBroadcast)
 	gameMsg := make(chan events.GameStateBroadcast) // server sent broadcast events
 
-	// ----------------------------- inlobby or ingame broadcast -------------------------------------
+	// ------------------ inlobby or ingame broadcast ---------------------
 	type serverMessage struct {
 		msgType string          // type e.g 'ingame-msg' or 'inlobby_msg'
 		rawJson json.RawMessage // delay decode
@@ -79,7 +77,6 @@ func main() {
 
 	// all reads
 	go func() {
-		defer close(done)
 		for {
 			messageType, reader, err := conn.NextReader()
 			if err != nil { // go out
@@ -215,7 +212,7 @@ func main() {
 			inLobbyAction <- events.InlobbyUserAction{
 				User:   &events.Player{},
 				Action: events.GetRooms}
-
+			
 			// a blocking channel retrieveal
 			res, ok := <-lobbyMsg
 			if !ok {

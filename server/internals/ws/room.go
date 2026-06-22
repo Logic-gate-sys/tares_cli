@@ -143,8 +143,6 @@ func (r *Room) Run() {
 				//close their send channels and remove them from the room
 				default:
 					delete(r.Clients, client)
-					// close client's inbound channel
-					close(client.inGameToServerMessage)
 				}
 
 			}
