@@ -72,11 +72,12 @@ func (rm *roomManager) Run() {
 				room, exists := rm.rooms[roomId]
 				rm.Unlock()
 				// if room exists and is not full
-				if exists && room.Capacity >= len(room.Clients) {
+				if exists && room.Capacity > len(room.Clients) {
 					//move client from lobby to room
 					rm.lobbyLeave <- action.Client
-					action.Client.room = room
 					room.join <- action.Client
+					action.Client.room = room
+
 				} else if room.Capacity == len(room.Clients) {
 					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
 						Message: "Room is full, look for another room",
@@ -102,11 +103,15 @@ func (rm *roomManager) Run() {
 					allRooms = append(allRooms, &toAdd)
 					idx++
 				}
-				// push all rooms to client
-				action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
-					Type:    "Get Rooms",
-					Message: "Available rooms",
-					Data:    allRooms,
+				if len(allRooms) == 0 {
+					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{Type: "Get Rooms", Message: "No available rooms"}
+				} else {
+					// push all rooms to client
+					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
+						Type:    "Get Rooms",
+						Message: "Available rooms",
+						Data:    allRooms,
+					}
 				}
 			}
 		}

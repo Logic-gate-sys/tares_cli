@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"text/tabwriter"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/client/helpers"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
@@ -18,6 +19,7 @@ import (
 )
 
 const socketURL = "ws://localhost:8081/ws/rooms"
+
 // main entry point of cliet
 func main() {
 	fmt.Println("::::: TARES <<->> CHAMPIONSHIP <<->> HUNTERS :::::\n Follow the prompts below to continue")
@@ -53,21 +55,23 @@ func main() {
 		failed      status = "Failed"
 		sent        status = "Sent"
 		pending     status = "Pending"
-		invalidType status = "Invalid"
 		read        status = "Read"
 	)
-	type messageStatus struct {
-		statusText status
-		detail     string
+
+	type lobbyMessage struct {
+		status status
+		msg    events.LobbyStateBroadcast
+	}
+	type gameMessage struct {
+		status string
+		msg    events.GameStateBroadcast
 	}
 	// channels for client communications
 	done := make(chan struct{})
 	inGameAction := make(chan events.IngameUserAction) // player actions in-game
 	inLobbyAction := make(chan events.InlobbyUserAction)
-	readStatus := make(chan messageStatus)     // what a read amounts to e.g error, pending, failed etc
-	writeStatus := make(chan messageStatus, 5) // what write amouts to e.g error, pending, failed etc
-	lobbyMsg := make(chan events.LobbyStateBroadcast)
-	gameMsg := make(chan events.GameStateBroadcast) // server sent broadcast events
+	lobbyMsg := make(chan lobbyMessage)
+	gameMsg := make(chan gameMessage) // server sent broadcast events
 
 	// ------------------ inlobby or ingame broadcast ---------------------
 	type serverMessage struct {
@@ -83,16 +87,15 @@ func main() {
 				fmt.Printf("Failed create next reader: %v", err)
 				panic(err)
 			}
+
 			if messageType != websocket.TextMessage {
 				fmt.Printf("Received and non-text message")
-				readStatus <- messageStatus{statusText: invalidType, detail: "Received and non-text message"}
 				continue
 			}
 			var rawMsg events.RawMessage
 			// decode the broadcast message
 			if err := json.NewDecoder(reader).Decode(&rawMsg); err != nil {
 				fmt.Printf("Faield to read message")
-				readStatus <- messageStatus{statusText: failed, detail: err.Error()}
 				continue
 			}
 			// swtich based on which message
@@ -100,24 +103,22 @@ func main() {
 			case events.Ingame:
 				var ingameMsg events.GameStateBroadcast
 				if err := json.Unmarshal(rawMsg.RawJson, &ingameMsg); err != nil {
-					readStatus <- messageStatus{statusText: failed, detail: "invalid json"}
+					gameMsg <- gameMessage{status: string(failed)}
 					continue
 				}
 				// pass newlly arrive message to channel
-				readStatus <- messageStatus{statusText: read, detail: "Read successful"}
-				gameMsg <- ingameMsg
+				gameMsg <- gameMessage{status: string(read), msg: ingameMsg}
 
 			// if in lobby action
 			case events.Inlobby:
 				var inlobbyMsg events.LobbyStateBroadcast
 				if err := json.Unmarshal(rawMsg.RawJson, &inlobbyMsg); err != nil {
-					readStatus <- messageStatus{statusText: failed, detail: err.Error()}
+					lobbyMsg <- lobbyMessage{status: failed}
 					continue
 				}
 				// pass read text
-				readStatus <- messageStatus{statusText: read, detail: "Read successful"}
-				lobbyMsg <- inlobbyMsg
-
+				lobbyMsg <- lobbyMessage{status: read, msg: inlobbyMsg}
+				fmt.Println("MESSAGE IS NOT PUT ON GAME MESSAGE CHANNEL <--- ")
 			}
 		}
 	}()
@@ -140,18 +141,18 @@ func main() {
 				msg := events.RawMessage{MsgType: events.Ingame, RawJson: jsonData}
 				if err := json.NewEncoder(writer).Encode(msg); err != nil {
 					fmt.Printf("Failed to send data buffer to server")
-					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
+					gameMsg <- gameMessage{status: string(failed)}
 					continue
 				}
 				writer.Close()
-				writeStatus <- messageStatus{statusText: sent, detail: "Message sent successfully"}
+				gameMsg <- gameMessage{status: string(sent)}
 
 			// if message hits inlobby user action
 			case action := <-inLobbyAction:
 				writer, err := conn.NextWriter(websocket.TextMessage)
 				if err != nil {
 					fmt.Println("Next writer failed, returning...")
-					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
+					lobbyMsg <- lobbyMessage{status:failed}
 					return
 				}
 				jsonData, err := json.Marshal(&action)
@@ -161,13 +162,11 @@ func main() {
 				msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonData}
 				if err := json.NewEncoder(writer).Encode(msg); err != nil {
 					fmt.Printf("Failed to send data buffer to server")
-					writeStatus <- messageStatus{statusText: failed, detail: err.Error()}
-					continue
+					lobbyMsg <- lobbyMessage{status: failed}
 				}
 				// flush writter
 				writer.Close()
-				writeStatus <- messageStatus{statusText: sent, detail: "In lobby user action sent"}
-				fmt.Println("REACHED END OF SEND <-----")
+				lobbyMsg <- lobbyMessage{status: sent}
 
 			}
 		}
@@ -212,21 +211,21 @@ func main() {
 			inLobbyAction <- events.InlobbyUserAction{
 				User:   &events.Player{},
 				Action: events.GetRooms}
-			
+
 			// a blocking channel retrieveal
 			res, ok := <-lobbyMsg
 			if !ok {
 				fmt.Println("Channel was closed. No more data will ever arrive")
 				return
 			}
-			valType := reflect.ValueOf(res.Data)
+			valType := reflect.ValueOf(res.msg.Data)
 			if valType.Kind() != reflect.Slice {
 				fmt.Println("No rooms available yet!, create one or wait for others to create one")
 			}
 			fmt.Fprintln(wrt, "Id\tName\tCapacity\tCurrent-Users")
 			fmt.Fprintln(wrt, "---\t--------\t--------\t---------")
 			// print all rooms well formatted
-			if roomSlice, ok := res.Data.([]*ws.Room); ok {
+			if roomSlice, ok := res.msg.Data.([]*ws.Room); ok {
 				for _, rm := range roomSlice {
 					fmt.Fprintf(wrt, "%s\t%s\t%d\t%d\n", rm.Id, rm.Name, rm.Capacity, len(rm.Clients))
 				}

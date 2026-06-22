@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 )
