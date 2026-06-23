@@ -10,7 +10,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Code
-              uses: action/checkout@v4
+              uses: actions/checkout@v4
             # setup go
             # NOTE: actions/setup-go@v5 automatically handles dependency caching
             # by monitoring your go.sum file out-of-the-box!
