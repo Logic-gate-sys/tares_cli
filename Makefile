@@ -1,0 +1,13 @@
+# just engine test
+test-engine:
+	go test -cover -v ./server/internals/engine
+# unit and integration tests
+unit-tests:
+	go test -cover -v -short ./...
+integration-tests:
+	go test -cover -v -tags=integration ./...
+ws-tests:
+	go test -cover -v -tags=ws ./...
+# To be used in development
+tdd-all-tests:
+	gow test -c -v -cover ./...

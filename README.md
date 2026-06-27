@@ -1,14 +1,17 @@
-# Tares CLI
+# Tares CLI 
+
+Version: 1.0.0 
 
 Tares CLI is a terminal-based multiplayer word scramble game written in Go.
 Players authenticate from the terminal, connect over WebSocket, and receive live game updates in the same window.
+Version: 1.0.1 will move all such interactions to the web with beatiful UIs and animations building on the proof of concept
 
 ## What Lives In The Repo
 
 ```mermaid
 flowchart LR
 	subgraph Client
-		CLI[tares-client\nterminal UI]
+		CLI[TUI]
 	end
 
 	subgraph Server

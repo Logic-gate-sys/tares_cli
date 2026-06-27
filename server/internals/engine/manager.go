@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"github.com/logic-gate-sys/tares-cli/server/internals/events"
 	"time"
 	"crypto"
@@ -15,7 +14,7 @@ import (
 
 
 type GameEngineInterface interface {
-	ScoreWord(word string, UserId string, diff Difficulty) (float32, error)
+	UserScoreWord(word string, diff Difficulty) (float32, error)
 	ManageTimer() 
 }
 
@@ -38,7 +37,7 @@ func NewGame(roomId string) *Game {
 const dictionaryFile = "server/dictionary/game_words.txt"
 
 // This func validates user's submitted word exist and applies the appropriate score 
-func (g *Game)   ScoreWord(word string, UserId string, diff Difficulty) (float32, error){
+func ScoreWord(word string, diff Difficulty) (float32, error){
 	 var baseScore int = 0 
     // validate word 
 	 isValid, err := ValidateWord(word, dictionaryFile )
@@ -62,7 +61,7 @@ func (g *Game)   ScoreWord(word string, UserId string, diff Difficulty) (float32
 		// Return 
 		return float32(baseScore), nil
 	 }
-    return 0, errors.New("Word Not Found!")
+    return 0, nil
 }
 
 // This returns the game state at any time couting in seconds
