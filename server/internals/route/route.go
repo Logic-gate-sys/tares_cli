@@ -11,7 +11,7 @@ import (
 func SetupRoute(app *app.Application)*chi.Mux{
   router := chi.NewRouter()
   router.Post("/users/signup", app.UserHandler.HandleUserSignup)
-  router.Post("/user/login", app.UserHandler.HandleUserSignin )
+  router.Post("/users/login", app.UserHandler.HandleUserSignin )
 
   // protected routes 
   router.Group(func(r chi.Router){
