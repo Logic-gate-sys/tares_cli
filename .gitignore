@@ -2,26 +2,26 @@
 server/databases
 
 # Logs
-web_client/logs
-web_client/*.log
-web_client/npm-debug.log*
-web_client/yarn-debug.log*
-web_client/yarn-error.log*
-web_client/pnpm-debug.log*
-web_client/lerna-debug.log*
-web_client/
-web_client/node_modules
-web_client/dist
-web_client/dist-ssr
-web_client/*.local
-web_client/
-web_client/# Editor directories and files
-web_client/.vscode/*
-web_client/!.vscode/extensions.json
-web_client/.idea
-web_client/.DS_Store
-web_client/*.suo
-web_client/*.ntvs*
-web_client/*.njsproj
-web_client/*.sln
-web_client/*.sw?
+web-client/logs
+web-client/*.log
+web-client/npm-debug.log*
+web-client/yarn-debug.log*
+web-client/yarn-error.log*
+web-client/pnpm-debug.log*
+web-client/lerna-debug.log*
+web-client/
+web-client/node_modules
+web-client/dist
+web-client/dist-ssr
+web-client/*.local
+web-client/
+web-client/# Editor directories and files
+web-client/.vscode/*
+web-client/!.vscode/extensions.json
+web-client/.idea
+web-client/.DS_Store
+web-client/*.suo
+web-client/*.ntvs*
+web-client/*.njsproj
+web-client/*.sln
+web-client/*.sw?
