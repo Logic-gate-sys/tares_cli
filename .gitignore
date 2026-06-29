@@ -1,0 +1,25 @@
+.env
+server/databases
+
+# Logs
+web-client/logs
+web-client/*.log
+web-client/npm-debug.log*
+web-client/yarn-debug.log*
+web-client/yarn-error.log*
+web-client/pnpm-debug.log*
+web-client/lerna-debug.log*
+web-client/node_modules
+web-client/dist
+web-client/dist-ssr
+web-client/*.local
+web-client/# Editor directories and files
+web-client/.vscode/*
+web-client/!.vscode/extensions.json
+web-client/.idea
+web-client/.DS_Store
+web-client/*.suo
+web-client/*.ntvs*
+web-client/*.njsproj
+web-client/*.sln
+web-client/*.sw?

@@ -1,0 +1,29 @@
+package route
+
+import (
+	"net/http"
+	"github.com/go-chi/chi/v5"
+	"github.com/logic-gate-sys/tares-cli/internals/app"
+	"github.com/logic-gate-sys/tares-cli/internals/ws"
+)
+
+
+func SetupRoute(app *app.Application)*chi.Mux{
+  router := chi.NewRouter()
+  router.Post("/users/signup", app.UserHandler.HandleUserSignup)
+  router.Post("/user/login", app.UserHandler.HandleUserSignin )
+
+  // protected routes 
+  router.Group(func(r chi.Router){
+    // authenticate all routes here 
+    r.Use(app.Middleware.Authenticate)
+
+    // websocket upgrade require authorisation
+    rm := ws.NewRoomManager() 
+    r.Get("/ws/rooms", app.Middleware.RequireAuth(http.HandlerFunc(rm.HandleWS)) )
+  })
+
+  
+  // export router
+  return router 
+}

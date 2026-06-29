@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@theme {
+  --color-neon-pink: #FF006E;
+  --color-neon-cyan: #00D9FF;
+  --color-neon-lime: #76EE00;
+  --color-neon-purple: #B537F2;
+  --color-neon-orange: #FF6B35;
+  --color-dark-bg: #0A0E27;
+  --color-dark-card: #1A1F3A;
+
+  /* Oversized typography for high-impact UI (with line-heights) */
+  --text-display-xl: 72px;
+  --text-display-xl--line-height: 1.1;
+  
+  --text-display-lg: 56px;
+  --text-display-lg--line-height: 1.1;
+  
+  --text-display-md: 48px;
+  --text-display-md--line-height: 1.15;
+  
+  --text-display-sm: 36px;
+  --text-display-sm--line-height: 1.2;
+
+  /* Font Families */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", sans-serif;
+
+  /* Custom Border Widths */
+  --border-3: 3px;
+  --border-4: 4px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: #0A0E27;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+}
+
+/* Base heading styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Outline text for vibrant look (inspired by https://globalpizza.party/) */
+.text-outline {
+  -webkit-text-stroke: 2px currentColor;
+  paint-order: stroke fill;
+  color: transparent;
+}
+
+/* High-energy button base */
+button {
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 150ms ease-out;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1F3A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FF006E;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF1A7C;
+}
+

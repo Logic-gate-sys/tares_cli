@@ -1,0 +1,64 @@
+# Reusable build workflow, producess output
+name: Build Tares CLI
+
+on:
+    workflow_call:
+        inputs:
+            artifact-name:
+                description: Name of artifact to be build  by the workflow
+                type: string
+                required: false
+                default: bin
+            go-version:
+                description: The go version required to complete the build job
+                required: false
+                default: "1.26.3"
+                type: string
+
+        outputs:
+            build-artifact:
+                description: Name of resulting artifact from built workflow
+                value: ${{jobs.build.outputs.artifact-name}}
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        outputs:
+            artifact-name: ${{steps.echo.outputs.name}}
+        steps:
+            # pin actions to detect changes
+            - name: Checkout
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+            # setup go
+            # NOTE: actions/setup-go@v5 automatically handles dependency caching
+            # by monitoring your go.sum file out-of-the-box!
+            - name: Setup go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{inputs.go-version}} # exact version
+            - name: Install dependencies
+              run: go mod download
+
+            # Build and upload  server and client artifacts
+            - name: Build server artifact
+              uses: ./.github/actions/build-server
+              with:
+                  artifact-name: bin
+
+            - name: Build client artifact
+              uses: ./.github/actions/build-client
+              with:
+                  artifact-name: bin
+              # Echo output artifact name
+            - name: Echo Artifact Name
+              id: echo
+              run: echo "name=${{inputs.artifact-name}}">> "$GITHUB_OUTPUT"
+            # upload all built binaries
+            - name: Upload Built Binaries
+              uses: actions/upload-artifact@v4
+              with:
+                  name: bin
+                  path: bin/
