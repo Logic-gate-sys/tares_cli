@@ -59,6 +59,8 @@ lint:
 	cd web-client && npm run lint
 
 # Testing
+ui-test:
+	cd web-client && npm run test
 test:
 	@echo "🧪 Running Go tests..."
 	cd server && go test ./... -v
