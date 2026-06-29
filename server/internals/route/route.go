@@ -3,8 +3,8 @@ package route
 import (
 	"net/http"
 	"github.com/go-chi/chi/v5"
-	"github.com/logic-gate-sys/tares-cli/server/internals/app"
-	"github.com/logic-gate-sys/tares-cli/server/internals/ws"
+	"github.com/logic-gate-sys/tares-cli/internals/app"
+	"github.com/logic-gate-sys/tares-cli/internals/ws"
 )
 
 

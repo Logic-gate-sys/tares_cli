@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/logic-gate-sys/tares-cli/server/internals/store"
-	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
-	"github.com/logic-gate-sys/tares-cli/server/internals/utils"
+	"github.com/logic-gate-sys/tares-cli/internals/store"
+	"github.com/logic-gate-sys/tares-cli/internals/tokens"
+	"github.com/logic-gate-sys/tares-cli/internals/utils"
 )
 
 

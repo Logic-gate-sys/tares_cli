@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/logic-gate-sys/tares-cli/server/internals/tokens"
+	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 )
 
 type PostgresTokenStore struct {

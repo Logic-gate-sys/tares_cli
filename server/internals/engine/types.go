@@ -3,7 +3,7 @@ package engine
 import (
 	"sync"
 	"time"
-	"github.com/logic-gate-sys/tares-cli/server/internals/events"
+	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"golang.org/x/net/websocket"
 )
 

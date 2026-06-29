@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/logic-gate-sys/tares-cli/server/internals/events"
-	"github.com/logic-gate-sys/tares-cli/server/internals/middleware"
+	"github.com/logic-gate-sys/tares-cli/internals/events"
+	"github.com/logic-gate-sys/tares-cli/internals/middleware"
 )
 
 type LobbyAction struct {

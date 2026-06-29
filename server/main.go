@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"github.com/logic-gate-sys/tares-cli/server/internals/app"
-	"github.com/logic-gate-sys/tares-cli/server/internals/route"
+	"github.com/logic-gate-sys/tares-cli/internals/app"
+	"github.com/logic-gate-sys/tares-cli/internals/route"
 )
 
 

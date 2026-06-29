@@ -3,9 +3,9 @@ package ws
 import (
 	"log"
 
-	"github.com/logic-gate-sys/tares-cli/server/internals/engine"
-	"github.com/logic-gate-sys/tares-cli/server/internals/events"
-	"github.com/logic-gate-sys/tares-cli/server/internals/timer"
+	"github.com/logic-gate-sys/tares-cli/internals/engine"
+	"github.com/logic-gate-sys/tares-cli/internals/events"
+	"github.com/logic-gate-sys/tares-cli/internals/timer"
 )
 
 /*

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/logic-gate-sys/tares-cli/server/internals/events"
+	"github.com/logic-gate-sys/tares-cli/internals/events"
 )
 
 // Holds the state of any connected device (e.g browser, terminal) at any time
