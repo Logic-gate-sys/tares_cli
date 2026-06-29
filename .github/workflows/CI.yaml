@@ -16,5 +16,5 @@ jobs:
     run-all-tests:
         uses: ./.github/workflows/_test.yaml
     build:
-      needs: run-all-tests
-      uses: ./.github/workflows/_build.yaml
+        needs: run-all-tests
+        uses: ./.github/workflows/_build.yaml
