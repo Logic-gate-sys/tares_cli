@@ -1,13 +1,12 @@
 import axios, { type AxiosInstance } from "axios";
 import type { AuthResponse, SignupRequest, LoginRequest } from "#types/type";
-import "../env";
 
 class APIClient {
     private client: AxiosInstance;
     private token: string | null = null;
 
     constructor() {
-        const baseURL = process.env.BASE_URL;
+        const baseURL = import.meta.env.VITE_BASE_URL;
         this.client = axios.create({
             baseURL,
             headers: {
@@ -36,7 +35,7 @@ class APIClient {
             });
             return res.data as AuthResponse;
         } catch (err: unknown) {
-            throw new Error(err.response?.data?.error || "Signup failed");
+            throw new Error(err.response?.data?.error||"Signup failed");
         }
     }
 

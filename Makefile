@@ -28,7 +28,7 @@ dev-server:
 
 dev-client:
 	@echo "⚛️  Starting React dev server..."
-	cd web-client && npm run dev
+	cd web-client && npm run dev -- --force
 
 # Build for production
 build: build-server build-client

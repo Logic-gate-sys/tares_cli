@@ -47,3 +47,4 @@ export function AuthGate({ children }: AuthGateProps) {
     </div>
   )
 }
+

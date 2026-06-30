@@ -13,7 +13,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const [username, setUsername] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.ChangeEvent) => {
     e.preventDefault()
     if (password !== confirmPassword) {
       alert('Passwords do not match')

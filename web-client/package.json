@@ -2,6 +2,7 @@
     "name": "web-client",
     "private": true,
     "version": "0.0.0",
+    "main": "./src/main.tsx",
     "type": "module",
     "scripts": {
         "dev": "vite",
