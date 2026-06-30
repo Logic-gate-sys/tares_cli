@@ -27,7 +27,8 @@
             "#hooks/*": ["src/hooks/*"],
             "#state/*": ["src/state/*"],
             "#services/*": ["src/services/*"],
-            "#types/*": ["src/types/*"]
+            "#types/*": ["src/types/*"],
+            "#pages/*": ["src/pages/*"],
         }
     },
     "include": ["src"],

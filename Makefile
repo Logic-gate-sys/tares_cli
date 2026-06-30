@@ -14,6 +14,7 @@ help:
 	@echo "  make clean          Remove build artifacts"
 	@echo "  make lint           Lint server and client code"
 	@echo "  make test           Run tests for server and client"
+	@echo "  make ui-test        Run React/Vite component and unit tests"
 
 install:
 	@echo "📦 Installing Go dependencies..."

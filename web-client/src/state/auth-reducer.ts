@@ -1,7 +1,7 @@
 export interface AuthState {
     user: { id: string; email:string; username: string } | null;
     token: string | null;
-    status: "is-loading" | "error" | "is-authenticated";
+    status: "iddle"|"is-loading" | "error" | "is-authenticated";
     error: unknown; 
 }
 
@@ -15,7 +15,7 @@ export type AuthAction =
 export const initialAuthState: AuthState = {
     user: null,
     token: null,
-    status: 'is-loading',
+    status: 'iddle',
     error: null
 };
 

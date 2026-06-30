@@ -1,92 +1,179 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* Core Tailwind Import */
 @import "tailwindcss";
 
+/* * Plugin equivalents in v4: 
+ * Container queries are now built-in.
+ * If you still heavily rely on the Forms plugin, you can import it here:
+ * @plugin "@tailwindcss/forms";
+ */
+
 @theme {
-  --color-neon-pink: #FF006E;
-  --color-neon-cyan: #00D9FF;
-  --color-neon-lime: #76EE00;
-  --color-neon-purple: #B537F2;
-  --color-neon-orange: #FF6B35;
-  --color-dark-bg: #0A0E27;
-  --color-dark-card: #1A1F3A;
+  /* Colors */
+  --color-secondary-fixed: #c2e9fa;
+  --color-on-secondary-container: #426876;
+  --color-on-primary-fixed: #400100;
+  --color-surface-container: #e9edfc;
+  --color-on-secondary-fixed: #001f28;
+  --color-surface-bright: #f9f9ff;
+  --color-secondary-fixed-dim: #a6ccdd;
+  --color-outline: #936e68;
+  --color-inverse-surface: #2b303b;
+  --color-surface: #f9f9ff;
+  --color-surface-container-highest: #dee2f1;
+  --color-secondary-container: #bfe6f7;
+  --color-on-tertiary-fixed: #1a1c1c;
+  --color-secondary: #3e6372;
+  --color-tertiary-container: #737575;
+  --color-tertiary: #5a5c5c;
+  --color-on-secondary: #ffffff;
+  --color-on-surface-variant: #5e3f3a;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #171c26;
+  --color-action-red: #EC2513;
+  --color-deep-ink: #121721;
+  --color-on-tertiary-container: #fcfcfc;
+  --color-on-secondary-fixed-variant: #254c59;
+  --color-surface-container-high: #e4e8f6;
+  --color-on-background: #171c26;
+  --color-error: #ba1a1a;
+  --color-tertiary-fixed: #e2e2e2;
+  --color-on-tertiary: #ffffff;
+  --color-on-primary-container: #fffbff;
+  --color-outline-variant: #e8bdb5;
+  --color-on-error: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-surface-container-low: #f1f3ff;
+  --color-inverse-primary: #ffb4a7;
+  --color-on-tertiary-fixed-variant: #454747;
+  --color-surface-tint: #bf0900;
+  --color-primary-container: #e51e0d;
+  --color-inverse-on-surface: #ecf0ff;
+  --color-background: #f9f9ff;
+  --color-primary-fixed-dim: #ffb4a7;
+  --color-surface-dim: #d6dae8;
+  --color-on-primary-fixed-variant: #920500;
+  --color-paper-white: #FFFFFF;
+  --color-error-container: #ffdad6;
+  --color-surface-variant: #dee2f1;
+  --color-primary: #ba0900;
+  --color-sky-blue: #BFE6F7;
+  --color-primary-fixed: #ffdad4;
+  --color-tertiary-fixed-dim: #c6c6c7;
+  --color-on-error-container: #93000a;
 
-  /* Oversized typography for high-impact UI (with line-heights) */
-  --text-display-xl: 72px;
-  --text-display-xl--line-height: 1.1;
-  
-  --text-display-lg: 56px;
-  --text-display-lg--line-height: 1.1;
-  
-  --text-display-md: 48px;
-  --text-display-md--line-height: 1.15;
-  
-  --text-display-sm: 36px;
-  --text-display-sm--line-height: 1.2;
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-gutter: 16px;
+  --spacing-md: 16px;
+  --spacing-xs: 4px;
+  --spacing-lg: 24px;
+  --spacing-sm: 8px;
+  --spacing-xl: 48px;
+  --spacing-margin-desktop: 40px;
+  --spacing-margin-mobile: 16px;
 
-  /* Font Families */
-  --font-display: "Space Grotesk", sans-serif;
-  --font-sans: "Inter", sans-serif;
+  /* Fonts Families */
+  --font-label-mono: "Space Mono", monospace;
+  --font-body-md: "Inter", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-label-bold: "Space Mono", monospace;
+  --font-headline-md: "Bricolage Grotesque", sans-serif;
+  --font-display-lg: "Bricolage Grotesque", sans-serif;
+  --font-headline-lg: "Bricolage Grotesque", sans-serif;
+  --font-display-lg-mobile: "Bricolage Grotesque", sans-serif;
 
-  /* Custom Border Widths */
-  --border-3: 3px;
-  --border-4: 4px;
+  /* Font Sizes & Specific Line Heights/Weights */
+  --text-label-mono: 12px;
+  --text-label-mono--line-height: 1.0;
+  --text-label-mono--font-weight: 400;
+
+  --text-body-md: 16px;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--font-weight: 400;
+
+  --text-body-lg: 20px;
+  --text-body-lg--line-height: 1.5;
+  --text-body-lg--font-weight: 500;
+
+  --text-label-bold: 14px;
+  --text-label-bold--line-height: 1.0;
+  --text-label-bold--font-weight: 700;
+
+  --text-headline-md: 32px;
+  --text-headline-md--line-height: 1.2;
+  --text-headline-md--font-weight: 700;
+
+  --text-display-lg: 72px;
+  --text-display-lg--line-height: 1.0;
+  --text-display-lg--letter-spacing: -0.04em;
+  --text-display-lg--font-weight: 800;
+
+  --text-headline-lg: 40px;
+  --text-headline-lg--line-height: 1.1;
+  --text-headline-lg--font-weight: 700;
+
+  --text-display-lg-mobile: 48px;
+  --text-display-lg-mobile--line-height: 1.0;
+  --text-display-lg-mobile--letter-spacing: -0.02em;
+  --text-display-lg-mobile--font-weight: 800;
+
+  /* Keyframes */
+  @keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Custom Utilities replacing the old @layer utilities */
+@utility neubrutal-shadow {
+  box-shadow: 8px 8px 0px 0px rgba(18, 23, 33, 1);
 }
 
-html, body, #root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+@utility neubrutal-shadow-sm {
+  box-shadow: 4px 4px 0px 0px rgba(18, 23, 33, 1);
 }
 
-body {
-  background-color: #0A0E27;
-  color: #FFFFFF;
-  font-family: 'Inter', sans-serif;
-  line-height: 1.6;
+@utility neubrutal-shadow-active {
+  &:active {
+    box-shadow: 0px 0px 0px 0px rgba(18, 23, 33, 1);
+    transform: translate(4px, 4px);
+  }
 }
 
-/* Base heading styles */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  line-height: 1.1;
+@utility text-stroke {
+  -webkit-text-stroke: 2px #121721;
 }
 
-/* Outline text for vibrant look (inspired by https://globalpizza.party/) */
-.text-outline {
-  -webkit-text-stroke: 2px currentColor;
-  paint-order: stroke fill;
-  color: transparent;
+@utility bg-grid {
+  background-size: 40px 40px;
+  background-image: radial-gradient(circle, #121721 1px, transparent 1px);
 }
 
-/* High-energy button base */
-button {
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 150ms ease-out;
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-size: 16px;
+@utility float-animation {
+  animation: float 3s ease-in-out infinite;
 }
 
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-button:active {
-  transform: translateY(0);
+/* Base global styling targeting standard classes/elements */
+@layer base {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #121721;
+    border-radius: 4px;
+  }
 }
 
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
   height: 8px;
 }
 
@@ -102,4 +189,3 @@ button:active {
 ::-webkit-scrollbar-thumb:hover {
   background: #FF1A7C;
 }
-

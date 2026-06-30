@@ -1,8 +1,8 @@
 import { authReducer, initialAuthState, type AuthAction } from '#state/auth-reducer'
 import { describe, it, expect } from 'vitest'
 
-describe('authReducer', () => {
-  it('should handle logi start', () => {
+describe('Auth Reducer test: ', () => {
+  it('should handle login start', () => {
     const state = authReducer(initialAuthState, { type: 'start' })
     expect(state.status==='is-loading').toBe(true)
     expect(state.error).toBeNull()
@@ -17,13 +17,13 @@ describe('authReducer', () => {
     expect(state.status==='is-authenticated').toBe(true)
     expect(state.token).toBe('jwt123')
     expect(state.user?.email).toBe('test@example.com')
+    expect(state.user?.username).toBe('someone')
   })
 
   it('should handle LOGOUT', () => {
     const prevState = {
-      ...initialAuthState,
+        ...initialAuthState,
       token: 'jwt123',
-      isAuthenticated: true,
     }
     const state = authReducer(prevState, { type: 'logout' })
     expect(state.status==='is-authenticated').toBe(false)
