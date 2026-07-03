@@ -1,30 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type{ ServerMessage, ClientMessage } from '#types/messages'
+import type { ServerMessage, ClientMessage } from '#types/messages';
 
-
-const WS_URL = `ws://${location.hostname}:8081/ws`;
-
-export function usePlayerSocket() {
-  const [events, setEvents] = useState<ServerMessage>([]);
+export function usePlayerSocket(token: string) {
+  const [events, setEvents] = useState<ServerMessage | null>(null);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket(WS_URL);
+    // 2. Append token directly to the WebSocket URL connection string
+    const wsUrl = `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(token)}`;
+    
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => setConnected(true);
     socket.onclose = () => setConnected(false);
     socket.onmessage = (e) => {
       const event = JSON.parse(e.data) as ServerMessage;
-      setEvents( event);
+      setEvents(event);
     };
-   console.log("SOCKET CONNECTED:::: ")
-    return () => socket.close();
+
+    return () => {
+      if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
+    };
   }, []);
 
   const send = useCallback((message: ClientMessage) => {
-    socketRef.current?.send(JSON.stringify(message));
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    }
   }, []);
 
   return { events, connected, send };

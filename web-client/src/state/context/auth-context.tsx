@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (data: LoginRequest) => {
         dispatch({ type: "start" });
         try {
-            const { token, user } = await apiClient.login(data);
+          const { token, user } = await apiClient.login(data);
             apiClient.setToken(token);
             dispatch({ type: "success", payload: { token, user } });
         } catch (error) {

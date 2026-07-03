@@ -32,7 +32,8 @@ class APIClient {
 
     async signup(data: SignupRequest): Promise<AuthResponse> {
         try {
-            const res = await this.client.post<AuthResponse>("/users/signup", data);
+          const res = await this.client.post<AuthResponse>("/users/signup", data);
+          
             return res.data as AuthResponse;
         } catch (err:unknown) {
             throw new Error(err.response?.data?.error?? "Signup failed");
@@ -41,8 +42,9 @@ class APIClient {
 
     async login(data: LoginRequest): Promise<AuthResponse> {
         try {
-            const res = await this.client.post<AuthResponse>("/users/login",data);
-            return res.data;
+          const res = await this.client.post<AuthResponse>("/users/login", data);
+          console.log("LOGIN-DATA: ", res.data);
+            return res.data as AuthResponse;
         } catch (err: unknown) {
             throw new Error(err.response?.data?.error?? "Login failed");
         }

@@ -100,7 +100,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		}
 		// else everything is okay
 		uh.Logger.Printf("User signedup successfully. [traceId =%s]. Username: %s Email: %s", traceID, res.user.Username, res.user.Email)
-		utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"details": res.user})
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": res.user})
 		return
 
 	case <-ctx.Done():
@@ -201,7 +201,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		// else everything is successful
-		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": res.user, "token": res.token})
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": res.user, "token": res.token.Hash})
 		uh.Logger.Printf("User logged in -> [traceId = %s] :%v", traceID, res)
 		return
 
