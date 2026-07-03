@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo} from "react";
 import { useAuth } from "#hooks/use-auth";
 import type { LoginRequest, SignupRequest } from "#types/type";
-import { NavigationBar } from "#components/home/navigation-bar";
 import { Footer } from "#components/footer";
+import { Outlet } from "react-router-dom";
 
 interface ScatteredLetter {
     id: number;
@@ -11,11 +11,8 @@ interface ScatteredLetter {
     left: string;
     rotate: string;
 }
-interface AuthGateProps {
-    children: React.ReactNode;
-}
 
-export function AuthGate({ children }: AuthGateProps) {
+export function AuthGate() {
     const { state, login, signup } = useAuth();
     const [mode, setMode] = useState<"login" | "signup">("login");
     // Controlled form states
@@ -38,10 +35,10 @@ export function AuthGate({ children }: AuthGateProps) {
     const handleSubmitAction = async (e: React.ChangeEvent) => {
         e.preventDefault();
         if (mode === "login") {
-            const data: LoginRequest = { email, password };
+            const data: LoginRequest = { email: email, password:{plain_text: password} };
             await login(data);
         } else if (mode === "signup") {
-            const data: SignupRequest = { email, username, password };
+          const data: SignupRequest = { email, username, password:{plain_text: password} };
             await signup(data);
         }
     };
@@ -136,12 +133,11 @@ export function AuthGate({ children }: AuthGateProps) {
     };
 
     // trial
-    if (state.status !== "is-authenticated") {
-        return <>{children}</>
-    }
+    if (state.status === "is-authenticated") {
+        return <><Outlet/></>
+    } else {
     return (
         <div className="bg-background h-full  text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
-            <NavigationBar/>
             <main className="flex-grow flex items-center justify-center relative py-xl px-margin-mobile">
                 {/* Structural Floating Badges */}
                 <div className="absolute top-20 left-10 sticker-float hidden lg:block">
@@ -216,12 +212,9 @@ export function AuthGate({ children }: AuthGateProps) {
                         )}
                     </h1>
 
-                    <form
-                        className="space-y-md text-sm font-bold text-black"
-                        onSubmit={handleSubmitAction}
-                    >
+                    <form className="space-y-md text-sm font-bold text-black" onSubmit={handleSubmitAction} >
                         {/* Username Input Field */}
-                        <div className="space-y-xs">
+                        {mode==="signup" && (<div className="space-y-xs">
                             <label
                                 htmlFor="username-input"
                                 className="font-label-bold text-deep-ink uppercase block"
@@ -240,10 +233,10 @@ export function AuthGate({ children }: AuthGateProps) {
                                 placeholder="WORD_WIZARD"
                                 className="w-full bg-paper-white border-[3px] border-deep-ink p-md font-label-mono focus:ring-0 focus:border-action-red transition-colors outline-none"
                             />
-                        </div>
+                        </div>)}
 
                         {/* Email Field Panel -> Mounts only on account creations */}
-                        {mode === "signup" && (
+                  
                             <div className="space-y-xs transition-all duration-300">
                                 <label
                                     htmlFor="email-input"
@@ -264,8 +257,6 @@ export function AuthGate({ children }: AuthGateProps) {
                                     className="w-full bg-paper-white border-[3px] border-deep-ink p-md font-label-mono focus:ring-0 focus:border-action-red transition-colors outline-none"
                                 />
                             </div>
-                        )}
-
                         {/* Grid Container adjusts layout constraints dynamically */}
                         <div
                             className={`grid grid-cols-1 gap-md transition-all duration-300 ${mode === "signup" ? "md:grid-cols-2" : ""}`}
@@ -367,5 +358,7 @@ export function AuthGate({ children }: AuthGateProps) {
             </main>
             <Footer/>
         </div>
-    );
+    );  
+    }
+   
 }

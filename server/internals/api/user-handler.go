@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -48,8 +49,9 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
+	fmt.Printf("Password: %s", *usr.Password.PlainText)
 	// add context for logging and memory management
-	ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
 	traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
 	ctx = context.WithValue(ctx, traceKey, traceID)
@@ -118,7 +120,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	// add context for logging and memory management
-	ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond) // 1.5 seconds
+	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
 
 	traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())

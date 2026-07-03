@@ -15,7 +15,7 @@ export const BottomNav = () => {
         <span className="material-symbols-outlined">videogame_asset</span>
         <span className="text-label-bold font-label-bold">Play</span>
       </NavLink>
-      <NavLink className="flex flex-col items-center justify-center text-deep-ink p-2 hover:bg-secondary-container transition-colors active:scale-95" to="/user/stats">
+      <NavLink className="flex flex-col items-center justify-center text-deep-ink p-2 hover:bg-secondary-container transition-colors active:scale-95" to="/game/stats">
         <span className="material-symbols-outlined">trophy</span>
         <span className="text-label-bold font-label-bold">Stats</span>
       </NavLink>

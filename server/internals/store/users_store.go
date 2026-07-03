@@ -10,8 +10,8 @@ import (
 )
 
 type Password struct {
-	PlainText *string 
-	Hash      []byte
+	PlainText *string `json:"plain_text"`
+	Hash      []byte  `json:"_"`
 }
 
 func(ps *Password) Set(plaintext string)(error){

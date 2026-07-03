@@ -1,4 +1,3 @@
-import { NavigationBar } from '#components/home/navigation-bar';
 import { useState} from 'react';
 import { Link } from 'react-router-dom';
 
@@ -36,8 +35,6 @@ export  function NotFound() {
             filter: drop-shadow(4px 4px 0px #121721);
         }
       `}} />
-
-     <NavigationBar/>
 
       {/* Background Elements (Floating Letters & Stickers) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
