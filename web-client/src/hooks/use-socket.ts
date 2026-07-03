@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type{ ServerMessage, ClientMessage } from '#types/messages'
 
-// The inspector's single source of truth: the harness event stream, received
-// over one WebSocket. We also send commands (submit_task, ...) back over it.
+
 const WS_URL = `ws://${location.hostname}:8081/ws`;
 
-export function useHarnessSocket() {
-  const [events, setEvents] = useState<AgentEvent[]>([]);
+export function usePlayerSocket() {
+  const [events, setEvents] = useState<ServerMessage>([]);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -16,10 +16,10 @@ export function useHarnessSocket() {
     socket.onopen = () => setConnected(true);
     socket.onclose = () => setConnected(false);
     socket.onmessage = (e) => {
-      const event = JSON.parse(e.data) as AgentEvent;
-      setEvents((prev) => [...prev, event]);
+      const event = JSON.parse(e.data) as ServerMessage;
+      setEvents( event);
     };
-
+   console.log("SOCKET CONNECTED:::: ")
     return () => socket.close();
   }, []);
 

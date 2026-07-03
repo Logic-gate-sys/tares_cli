@@ -14,7 +14,7 @@ function App() {
                 <Routes>
                     {/*-------- Home layouts --------------*/}
                     <Route element={<HomeLayout/>}>
-                       <Route path="/" element={<Home />} />  
+                       <Route path="/" element={<Home />} />
                     </Route>
                     {/*-------- Auth Gate -----------------*/}
                     <Route element={<AuthGate/>}>
@@ -23,8 +23,8 @@ function App() {
                              <Route path="/game/arena" element={<Lobby />} />
                         </Route>
                     </Route>
-                   
-                    <Route path="*" element={<NotFound />}/> 
+
+                    <Route path="*" element={<NotFound />}/>
                 </Routes>
             </AuthProvider>
         </BrowserRouter>
