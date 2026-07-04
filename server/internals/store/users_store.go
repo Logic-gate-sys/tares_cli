@@ -50,6 +50,29 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type UserPublicResponse struct {
+	Id          int       `json:"id"`
+	Email       string    `json:"email"`
+	Username    string    `json:"username"`
+	PlayerLevel string    `json:"p_level"`
+	Bio         string    `json:"bio"`
+	TotalScore  int       `json:"total_score"`
+	CreatedAt   time.Time `json:"created_at"`
+	// Notice: No password field exists here whatsoever.
+}
+
+func NewUserPublicResponse(u *User) UserPublicResponse {
+	return UserPublicResponse{
+		Id:          u.Id,
+		Email:       u.Email,
+		Username:    u.Username,
+		PlayerLevel: u.PlayerLevel,
+		Bio:         u.Bio,
+		TotalScore:  u.TotalScore,
+		CreatedAt:   u.CreatedAt,
+	}
+}
+
 func (u *User) IsAnonymousUser() bool {
 	return u == AnonymousUser
 }

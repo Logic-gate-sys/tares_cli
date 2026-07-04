@@ -7,26 +7,35 @@ export function usePlayerSocket(token: string) {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // 2. Append token directly to the WebSocket URL connection string
     const wsUrl = `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(token)}`;
-    
+
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
-
-    socket.onopen = () => setConnected(true);
-    socket.onclose = () => setConnected(false);
-    socket.onmessage = (e) => {
+    // open
+    socket.addEventListener("open", () => {
+      console.log("Socket opened <--")
+      setConnected(true);
+    })
+    // message arrives
+    socket.addEventListener("message", (e) => {
+      console.log("Message came in <--")
       const event = JSON.parse(e.data) as ServerMessage;
       setEvents(event);
-    };
-
+    })
+   // close
+    socket.addEventListener("close", () => {
+      console.log("Socket closed <--")
+      setConnected(false)
+    })
+   // clean up 
     return () => {
       if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
         socket.close();
       }
     };
-  }, []);
-
+  }, [token]);
+  
+  // sending message to socket server 
   const send = useCallback((message: ClientMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));

@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"net/http"
 	"strings"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -97,12 +98,13 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-
+		
 		// Create timeout context with 2 seconds max
 		ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 		defer cancel()
 		// Safely decode the hex string token
-		token, err := hex.DecodeString(tokenStr)
+		// token, err :=  hex.DecodeString(tokenStr)
+		token, err := base64.URLEncoding.DecodeString(tokenStr)
 		if err != nil {
 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"error": "Malformed token payload"})
 			return

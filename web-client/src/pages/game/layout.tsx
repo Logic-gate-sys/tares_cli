@@ -6,10 +6,10 @@ import { useAuth } from "#hooks/use-auth";
 
 export function Game() {
   const { state } = useAuth()
-  const {connected, events } = usePlayerSocket(state.token)
+  const { connected } = usePlayerSocket(state.token)
   if (connected) {
     return (<>
-      {events.type ==="room.joined" && (<Header />)}
+      <Header />
       <Outlet />
       <BottomNav />
     </>)

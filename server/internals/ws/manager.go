@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
@@ -48,7 +47,8 @@ func (rm *roomManager) Run() {
 		// when client leaves lobby
 		case client := <-rm.lobbyLeave:
 			delete(rm.lobbyClients, client)
-			close(client.inLobbyToClientMessage)
+			close(client.inLobbyToClientEvent)
+			log.Printf("Client: %s left lobby", client.name)
 
 		// if an event is sent to lobby
 		case action := <-rm.lobbyInbound:
@@ -82,11 +82,11 @@ func (rm *roomManager) Run() {
 					action.Client.room = room
 
 				} else if room.Capacity == len(room.Clients) {
-					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
+					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Message: "Room is full, look for another room",
 					}
 				} else {
-					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
+					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Message: "No room with such id: " + roomId,
 					}
 				}
@@ -107,10 +107,10 @@ func (rm *roomManager) Run() {
 					idx++
 				}
 				if len(allRooms) == 0 {
-					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{Type: "Get Rooms", Message: "No available rooms"}
+					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{Type: "Get Rooms", Message: "No available rooms"}
 				} else {
 					// push all rooms to client
-					action.Client.inLobbyToClientMessage <- events.LobbyStateBroadcast{
+					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Type:    "Get Rooms",
 						Message: "Available rooms",
 						Data:    allRooms,
@@ -145,9 +145,7 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	clt := &client{
 		name:                   user.Username,
 		socket:                 socket,
-		inLobbyToClientMessage: make(chan events.LobbyStateBroadcast),
-		inGameToClientServer:   make(chan events.GameStateBroadcast),
-		room:                   nil,
+		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast),
 		manager:                rm,
 	}
 	// run room & put client on lobbyJoin chan
