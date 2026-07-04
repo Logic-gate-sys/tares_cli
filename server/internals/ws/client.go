@@ -3,18 +3,19 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 )
 
 // Holds the state of any connected device (e.g browser, terminal) at any time
 type client struct {
-	name                   string          // connect client's name
-	socket                 *websocket.Conn // socket connection by which the client communicates over the network
-	inLobbyToClientMessage chan events.LobbyStateBroadcast
-	inGameToClientServer   chan events.GameStateBroadcast //messages going from server to client
-	room                   *Room
-	manager                *roomManager
+	name                 string          // connect client's name
+	socket               *websocket.Conn // socket connection by which the client communicates over the network
+	inLobbyToClientEvent chan events.LobbyStateBroadcast
+	inGameToClientEvent  chan events.GameStateBroadcast //messages going from server to client
+	room                 *Room
+	manager              *roomManager
 	// should I add acess tokens here?
 }
 
@@ -26,7 +27,7 @@ func (c *client) writeToClientPump() {
 	// sent all inbound events through socket
 	for {
 		select {
-		case event, ok := <-c.inGameToClientServer:
+		case event, ok := <-c.inGameToClientEvent:
 			// if manager closed in game to client channel
 			if !ok {
 				return
@@ -50,7 +51,7 @@ func (c *client) writeToClientPump() {
 			writer.Close()
 
 		// in a lobby broadcast comes in
-		case event, ok := <-c.inLobbyToClientMessage:
+		case event, ok := <-c.inLobbyToClientEvent:
 			// if manager closes lobby To client channel
 			if !ok {
 				return
@@ -85,9 +86,19 @@ func (c *client) readFromClientPump() {
 		//blocks until a message arrives
 		messageType, reader, err := c.socket.NextReader()
 		if err != nil {
-			fmt.Println("Reader failed. Please restart the server", "Details: ", err.Error())
+			// if the action is trigger intensionally by client e.g mount and unmounting if STRICT mode in react,etc
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, 1005) {
+				fmt.Printf("Client %s cleanly disconnected or connection dropped by StrictMode.\n", c.name)
+			} else {
+				fmt.Printf("Reader failed abnormally for client %s: %v\n", c.name, err)
+				return
+			}
+			// CRITICAL FIX: You must explicitly unregister the client from the room/manager here!
+			// Otherwise, the channels will leak or writeToClientPump will panic on a closed socket.
+			c.manager.lobbyLeave <- c
 			return
 		}
+
 		if messageType != websocket.TextMessage {
 			fmt.Println("Invalid message type")
 			continue
@@ -107,7 +118,7 @@ func (c *client) readFromClientPump() {
 			}
 			// send to lobby
 			c.manager.lobbyInbound <- LobbyAction{Client: c, Action: inlobbyMsg}
-			
+
 		// in game messsage to should go to room inbound channel
 		case events.Ingame:
 			var ingameMsg events.IngameUserAction

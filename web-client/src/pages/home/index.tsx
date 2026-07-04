@@ -104,9 +104,6 @@ export  function Home() {
           <Trophy className="w-8 h-8 fill-current text-white" />
         </div>
       </div>
-
-      {/* Navigation & Hero */}
-      <NavigationBar/>
       <Hero/>
 
       {/* MARQUEE TICKER */}

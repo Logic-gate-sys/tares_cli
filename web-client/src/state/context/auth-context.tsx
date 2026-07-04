@@ -32,10 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // On mount, restore token from localStorage
     useEffect(() => {
-        const savedToken = localStorage.getItem("auth_token");
+        const savedToken = apiClient.getToken();
         if (savedToken) {
             dispatch({ type: "restore-token", payload: savedToken });
-            apiClient.setToken(savedToken);
         }
     }, []);
 
@@ -43,7 +42,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: "start" });
         try {
             const { token, user } = await apiClient.signup(data);
-            localStorage.setItem("auth_token", token);
             apiClient.setToken(token);
             dispatch({ type: "success", payload: { token, user: user } });
         } catch (error) {
@@ -55,8 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (data: LoginRequest) => {
         dispatch({ type: "start" });
         try {
-            const { token, user } = await apiClient.login(data);
-            localStorage.setItem("auth_token", token);
+          const { token, user } = await apiClient.login(data);
             apiClient.setToken(token);
             dispatch({ type: "success", payload: { token, user } });
         } catch (error) {
@@ -66,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = () => {
-        localStorage.removeItem("auth_token");
         apiClient.setToken(null);
         dispatch({ type: "logout" });
     };

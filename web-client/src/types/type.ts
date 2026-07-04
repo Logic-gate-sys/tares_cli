@@ -2,12 +2,16 @@
 export type SignupRequest = {
     email: string;
     username: string;
-    password: string;
+    password: {
+        plain_text:string;
+    }
 }
 
 export type LoginRequest = {
     email: string;
-    password: string;
+    password: {
+        plain_text:string;
+    }
 }
 
 export type  AuthResponse = {

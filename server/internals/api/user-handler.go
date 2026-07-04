@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -48,8 +49,9 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
+	fmt.Printf("Password: %s", *usr.Password.PlainText)
 	// add context for logging and memory management
-	ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
 	traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
 	ctx = context.WithValue(ctx, traceKey, traceID)
@@ -97,8 +99,9 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		// else everything is okay
+		publicUsr := store.NewUserPublicResponse(res.user)
 		uh.Logger.Printf("User signedup successfully. [traceId =%s]. Username: %s Email: %s", traceID, res.user.Username, res.user.Email)
-		utils.WriteJSON(w, http.StatusCreated, utils.Envlope{"details": res.user})
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr})
 		return
 
 	case <-ctx.Done():
@@ -118,7 +121,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	// add context for logging and memory management
-	ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond) // 1.5 seconds
+	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
 
 	traceID := fmt.Sprintf("req-%d", time.Now().UnixNano())
@@ -199,7 +202,8 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		// else everything is successful
-		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": res.user, "token": res.token})
+		publicUsr := store.NewUserPublicResponse(res.user)
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr, "token": res.token.Hash})
 		uh.Logger.Printf("User logged in -> [traceId = %s] :%v", traceID, res)
 		return
 

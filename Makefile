@@ -15,6 +15,8 @@ help:
 	@echo "  make lint           Lint server and client code"
 	@echo "  make test           Run tests for server and client"
 	@echo "  make ui-test        Run React/Vite component and unit tests"
+	@echo "  make start-pg       Spawn docker Development postgres container"
+	@echo "  make pg-connect     Connect to running postgres instance "
 
 install:
 	@echo "📦 Installing Go dependencies..."
@@ -34,7 +36,10 @@ dev-client:
 # Build for production
 build: build-server build-client
 	@echo "✅ Build complete. Server binary at ./server && Client bundle at ./web-client/dist"
-
+pg-connect:
+	docker exec -it taresDB psql -U logic -d tares_db 
+start-pg:
+	docker compose up
 # needs refinement
 build-server:
 	@echo "🔨 Building Go server..."

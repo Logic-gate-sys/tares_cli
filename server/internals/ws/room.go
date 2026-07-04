@@ -85,7 +85,7 @@ func (r *Room) Run() {
 			
 		case client := <-r.leave:
 			delete(r.Clients, client)
-			close(client.inGameToClientServer)
+			close(client.inGameToClientEvent)
 			log.Printf("Client left room: %s", client.name)
 		}
 	}
