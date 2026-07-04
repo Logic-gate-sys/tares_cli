@@ -18,8 +18,8 @@ export function usePlayerSocket(token: string) {
     })
     // message arrives
     socket.addEventListener("message", (e) => {
-      console.log("Message came in <--")
-      const event = JSON.parse(e.data) as ServerMessage;
+      const event = JSON.parse(e.data) as ServerMessage; // {msg_type:"", payload: {data, message, type}}
+      console.log("Message came in: ", event)
       setEvents(event);
     })
    // close

@@ -52,7 +52,6 @@ type GameStateBroadcast struct {
 }
 
 type LobbyStateBroadcast struct {
-	Type    string      `json:"type"`
 	Data    interface{} `json:"data"`
 	Message string      `json:"message"`
 }
@@ -75,6 +74,6 @@ const (
 
 // any message from client or server is in this format
 type RawMessage struct {
-	MsgType message         `json:"msg_type"`
+	MsgType message         `json:"type"`
 	RawJson json.RawMessage `json:"payload"` // holdes raw json to delay decodeing
 }

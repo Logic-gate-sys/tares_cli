@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
@@ -42,6 +43,17 @@ func (rm *roomManager) Run() {
 		// when client joins lobby channel
 		case client := <-rm.lobbyJoin:
 			rm.lobbyClients[client] = true
+			// also search for all rooms in lobby give client results
+			var publicRooms []PublicUserRoom
+			for _, room := range rm.rooms {
+				pbcRoom := NewPublicRoom(room)
+				publicRooms = append(publicRooms, pbcRoom)
+			}
+
+			client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+				Data:    publicRooms,
+				Message: "Available rooms",
+			}
 			log.Printf("Client: %s joined lobby", client.name)
 
 		// when client leaves lobby
@@ -107,11 +119,10 @@ func (rm *roomManager) Run() {
 					idx++
 				}
 				if len(allRooms) == 0 {
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{Type: "Get Rooms", Message: "No available rooms"}
+					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{Message: "No available rooms"}
 				} else {
 					// push all rooms to client
 					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-						Type:    "Get Rooms",
 						Message: "Available rooms",
 						Data:    allRooms,
 					}
@@ -142,17 +153,17 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 		panic("Socket upgrade failed ")
 	}
 	// Create client from authenticated user
-	clt := &client{
-		name:                   user.Username,
-		socket:                 socket,
+	client := &client{
+		name:                 user.Username,
+		socket:               socket,
 		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast),
-		manager:                rm,
+		manager:              rm,
 	}
 	// run room & put client on lobbyJoin chan
 	go rm.Run()
-	rm.lobbyJoin <- clt
+	rm.lobbyJoin <- client
 
 	// start client read & write pumps
-	go clt.writeToClientPump()
-	go clt.readFromClientPump()
+	go client.writeToClientPump()
+	go client.readFromClientPump()
 }

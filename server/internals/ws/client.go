@@ -71,6 +71,7 @@ func (c *client) writeToClientPump() {
 			if err := json.NewEncoder(writer).Encode(msg); err != nil {
 				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
 			}
+			// flush message to client 
 			writer.Close()
 		}
 

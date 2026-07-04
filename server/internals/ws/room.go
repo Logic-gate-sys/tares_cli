@@ -19,6 +19,7 @@ import (
 */
 type RoomOption func(*Room)
 
+
 type Room struct {
 	Id             string                         // room unique id
 	Name           string                         // room name
@@ -35,6 +36,14 @@ type Room struct {
 	pauseGame      chan bool
 }
 
+type PublicUserRoom struct{
+	Id  string 	  `json:"id"`
+	Status string `json:"status"`
+	Name string   `json:"name"`
+	Capacity int  `json:"capacity"`
+}
+
+
 func WithName(name string) RoomOption {
 	return func(r *Room) {
 		r.Name = name
@@ -44,6 +53,22 @@ func WithName(name string) RoomOption {
 func WithCapacity(capacity int) RoomOption {
 	return func(r *Room) {
 		r.Capacity = capacity
+	}
+}
+
+func NewPublicRoom(r *Room) PublicUserRoom{
+	var status string
+	isFull:=len(r.Clients)>r.Capacity
+	if isFull{
+		status ="Full"
+	}else{
+		status ="Not full"
+	}
+	return PublicUserRoom{
+		Id: r.Id,
+		Status:status ,
+		Name: r.Name,
+		Capacity: r.Capacity,
 	}
 }
 

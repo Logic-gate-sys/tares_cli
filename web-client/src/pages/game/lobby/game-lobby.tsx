@@ -1,5 +1,8 @@
-import { BottomNav } from '#components/game/arena';
+import { useAuth } from '#hooks/use-auth';
+import { usePlayerSocket } from '#hooks/use-socket';
 import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { CreateRoomModal } from '#components/form-modals';
 
 interface PlayerAvatar {
   src: string;
@@ -63,7 +66,13 @@ const ARENAS_DATA: Arena[] = [
   },
 ];
 
-export  function Lobby() {
+export function Lobby() {
+  const { state } = useAuth()
+  const { send } = usePlayerSocket(state.token);
+  const [openModal, setOpenModal] = useState<boolean>(false); 
+  // // get all avaiable rooms
+  // const rooms:GameRoom[] = events.type === 'inlobby_msg' && events.payload.message.includes("rooms") ?
+  //   events.payload.data : [];
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
@@ -101,7 +110,7 @@ export  function Lobby() {
           border: 2px solid #121721;
         }
       `}} />
-
+       
       <main className="pt-24 pb-24 px-4 md:px-margin-desktop min-h-screen relative">
         {/* Stickers / Decorative elements */}
         <div className="absolute top-28 right-10 animate-float sticker z-0 hidden lg:block">
@@ -122,7 +131,7 @@ export  function Lobby() {
               <h2 className="text-display-lg-mobile md:text-display-lg font-display-lg text-deep-ink mb-4">
                 READY TO <span className="text-action-red">SCRAMBLE?</span>
               </h2>
-              <p className="text-body-lg font-body-lg text-deep-ink max-w-xl">
+              <p className="text-body-lg font-body-lg text-deep-ink max-w-2xl">
                 Jump into the fastest-growing word arena. Beat the clock, outsmart your rivals, and climb the global ranks.
               </p>
             </div>
@@ -131,7 +140,8 @@ export  function Lobby() {
                 QUICK JOIN
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>bolt</span>
               </button>
-              <button className="bg-paper-white text-deep-ink px-12 py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-[1.02] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4">
+              <button className="bg-paper-white text-deep-ink px-12 py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-[1.02] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4"
+                onClick={()=> setOpenModal(true)}>
                 CREATE
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>add_circle</span>
               </button>
@@ -154,8 +164,8 @@ export  function Lobby() {
 
             <div className="flex flex-col gap-4">
               {ARENAS_DATA.map((arena) => (
-                <div 
-                  key={arena.id} 
+                <div
+                  key={arena.id}
                   className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4">
@@ -166,7 +176,7 @@ export  function Lobby() {
                       <div>
                         <h4 className="text-headline-md font-headline-md text-deep-ink">{arena.name}</h4>
                         <p className="text-body-md font-body-md text-secondary flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm">groups</span> 
+                          <span className="material-symbols-outlined text-sm">groups</span>
                           {arena.playersText} • {arena.timeLeftText}
                         </p>
                       </div>
@@ -175,11 +185,11 @@ export  function Lobby() {
                     <div className="flex items-center gap-4 w-full md:w-auto">
                       <div className="flex -space-x-4">
                         {arena.avatars.map((avatar, idx) => (
-                          <img 
+                          <img
                             key={idx}
-                            className={`w-10 h-10 rounded-full border-2 border-deep-ink ${avatar.bgClass}`} 
-                            alt={avatar.alt} 
-                            src={avatar.src} 
+                            className={`w-10 h-10 rounded-full border-2 border-deep-ink ${avatar.bgClass}`}
+                            alt={avatar.alt}
+                            src={avatar.src}
                           />
                         ))}
                         {arena.extraPlayersCount && (
@@ -197,7 +207,7 @@ export  function Lobby() {
               ))}
             </div>
           </div>
-
+         
           {/* Stats & Sidebar */}
           <aside className="lg:col-span-4 flex flex-col gap-8">
             {/* Quick Stats Card */}
@@ -235,42 +245,46 @@ export  function Lobby() {
             </div>
           </aside>
         </div>
-      </main>
 
+        
+      
       {/* Bottom Navigation (Mobile Only) */}
       <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-sky-blue border-t-4 border-deep-ink shadow-[0px_-4px_0px_0px_#121721] md:hidden">
-        <NavLink 
-          to="/home" 
+        <NavLink
+          to="/home"
           className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
         >
           <span className="material-symbols-outlined">home</span>
           <span className="text-label-bold font-label-bold">Home</span>
         </NavLink>
-        
-        <NavLink 
-          to="/lobby" 
+
+        <NavLink
+          to="/lobby"
           className={({ isActive }) => `flex flex-col items-center justify-center p-2 border-2 border-deep-ink rounded-lg transition-all active:scale-95 ${isActive ? "bg-secondary-container text-deep-ink font-bold" : "text-deep-ink"}`}
         >
           <span className="material-symbols-outlined">group</span>
           <span className="text-label-bold font-label-bold">Lobby</span>
         </NavLink>
-        
-        <NavLink 
-          to="/play" 
+
+        <NavLink
+          to="/play"
           className="flex flex-col items-center justify-center bg-action-red text-paper-white border-2 border-deep-ink rounded-lg px-4 py-1 translate-y-[-4px] shadow-[4px_4px_0px_0px_#121721] active:scale-95 transition-transform"
         >
           <span className="material-symbols-outlined">videogame_asset</span>
           <span className="text-label-bold font-label-bold">Play</span>
         </NavLink>
-        
-        <NavLink 
-          to="/stats" 
+
+        <NavLink
+          to="/stats"
           className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
         >
           <span className="material-symbols-outlined">trophy</span>
           <span className="text-label-bold font-label-bold">Stats</span>
         </NavLink>
-          </nav>
+      </nav>
+        {/*--------------- MODAL FORM -------------------------*/}
+        {openModal && (<CreateRoomModal onSubmit={send} onClose={() => setOpenModal(false)} />)}
+    </main>
     </div>
   );
 }
