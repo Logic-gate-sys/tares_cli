@@ -16,6 +16,7 @@ export type GameRoom = {
 // Server → Client (broadcasts)
 export type ServerMessage =
   | { type: 'inlobby_msg', payload: { data: GameRoom[], message: string } }
+  | {type: 'ingame_msg', payload: unknown}
   | { type: 'connection.established'; playerId: string }
   | { type: 'room.joined'; roomId: string; players: Player[] }
   | { type: 'room.playerLeft'; playerId: string }

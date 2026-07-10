@@ -39,6 +39,7 @@ export function usePlayerSocket(token: string) {
   const send = useCallback((message: ClientMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));
+      console.log("Message sent: ", message)
     }
   }, []);
 

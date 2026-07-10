@@ -22,6 +22,7 @@ export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
       type: 'inlobby_msg',
       payload: {action:'CREATE_ROOM', value:{name: data.name, capacity: data.capacity}}
     });
+    onClose()
   }
 
   return (

@@ -35,6 +35,29 @@ func NewRoomManager() *roomManager {
 	}
 }
 
+// broadcastToLobby is a helper method to send the current room list to everyone in the lobby
+func (rm *roomManager) broadcastToLobby() {
+	var publicRooms []PublicUserRoom
+	for _, room := range rm.rooms {
+		pbcRoom := NewPublicRoom(room)
+		publicRooms = append(publicRooms, pbcRoom)
+	}
+
+	// Loop through every client waiting in the lobby and push the update
+	for client := range rm.lobbyClients {
+		// Non-blocking channel send pattern to prevent one slow client from hanging the entire lobby loop
+		select {
+		case client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+			Data:    publicRooms,
+			Message: "Someone create a new room",
+		}:
+		default:
+			// If a client's channel buffer is full, skip them so the loop keeps moving smoothly
+			log.Printf("Skipping broadcast for client %s: buffer full", client.name)
+		}
+	}
+}
+
 // manages lobby state(creating, joining, leaving, discovering rooms)
 func (rm *roomManager) Run() {
 	// run loop
@@ -79,7 +102,9 @@ func (rm *roomManager) Run() {
 				rm.Unlock()
 				// leave lobby and join room
 				go room.Run()
-				room.join <- action.Client
+				// also search for all rooms in lobby give client results
+				rm.broadcastToLobby()
+				// room.join <- action.Client
 
 			// incase user wants to join an available room
 			case events.JoinRoom:

@@ -1,8 +1,10 @@
 import { useAuth } from '#hooks/use-auth';
 import { usePlayerSocket } from '#hooks/use-socket';
 import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
+import { Notification } from '#components/ui/notification';
+import type { GameRoom } from '#types/messages';
 
 interface PlayerAvatar {
   src: string;
@@ -21,7 +23,12 @@ interface Arena {
   avatars: PlayerAvatar[];
   extraPlayersCount?: number;
 }
-
+// Keep hardcoded fallbacks or default UI configurations safely separate
+const VISUAL_THEMES = [
+  { bg: 'bg-primary-container', text: 'text-paper-white', icon: 'sports_esports' },
+  { bg: 'bg-secondary-container', text: 'text-deep-ink', icon: 'terminal' },
+  { bg: 'bg-tertiary-container', text: 'text-paper-white', icon: 'bolt' }
+];
 const ARENAS_DATA: Arena[] = [
   {
     id: 'cyberpunk-city',
@@ -68,11 +75,47 @@ const ARENAS_DATA: Arena[] = [
 
 export function Lobby() {
   const { state } = useAuth()
-  const { send } = usePlayerSocket(state.token);
+  const { send, events } = usePlayerSocket(state.token);
   const [openModal, setOpenModal] = useState<boolean>(false); 
+  const [arena, setArena] = useState<Arena[]>()
   // // get all avaiable rooms
-  // const rooms:GameRoom[] = events.type === 'inlobby_msg' && events.payload.message.includes("rooms") ?
-  //   events.payload.data : [];
+  const rooms:GameRoom[] = events.type === 'inlobby_msg' && events.payload.message.includes("rooms") ?
+    events.payload.data : [];
+
+  useEffect(() => {
+      if (!events) return;
+  
+      // Filter for lobby system announcements containing room payloads
+      if (events.type === 'inlobby_msg' && events.payload?.message?.includes("rooms")) {
+        const incomingRooms = events.payload.data || [];
+  
+        // Transform backend go-struct rooms into client-friendly Arena items safely
+        const mappedArenas: Arena[] = incomingRooms.map((room: GameRoom, idx: number) => {
+          const theme = VISUAL_THEMES[idx % VISUAL_THEMES.length];
+          return {
+            id: room.id,
+            name: ( room.name || "UNNAMED ARENA").toUpperCase(),
+            icon: theme.icon,
+            iconBgClass: theme.bg,
+            iconTextColorClass: theme.text,
+            playersText: `${room.Clients ? room.Clients.length : 0}/${room.capacity} Players`,
+            timeLeftText: 'Active Match',
+            avatars: [], // Map real profile images out of room.Clients data array safely here
+            extraPlayersCount: 0
+          };
+        });
+  
+        // CHECK: If our prior room list was shorter than the fresh update, a new arena launched!
+        if (arenas.length > 0 && mappedArenas.length > arenas.length) {
+          // Find the newly appended room safely
+          const newRoom = mappedArenas.find(ma => !arenas.some(a => a.id === ma.id));
+          setToastMessage(newRoom ? `${newRoom.name} HAS ENTERED THE LOBBY!` : "NEW CHALLENGER HAS ENTERED THE ARENA!");
+          setShowToast(true);
+        }
+  
+        setArenas(mappedArenas);
+      }
+    }, [events]);
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
@@ -284,7 +327,9 @@ export function Lobby() {
       </nav>
         {/*--------------- MODAL FORM -------------------------*/}
         {openModal && (<CreateRoomModal onSubmit={send} onClose={() => setOpenModal(false)} />)}
-    </main>
-    </div>
+        {(events?.type==='inlobby_msg' || events?.type==='ingame_msg') &&(<Notification />)}
+      </main>
+      
+    </div> 
   );
 }
