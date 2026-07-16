@@ -1,6 +1,7 @@
 import React, { useState, useMemo} from "react";
 import { useAuth } from "#hooks/use-auth";
 import type { LoginRequest, SignupRequest } from "#types/type";
+import { Eye } from 'lucide-react'
 import { Footer } from "#components/footer";
 import { Outlet } from "react-router-dom";
 
@@ -18,7 +19,8 @@ export function AuthGate() {
     // Controlled form states
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState("");
     // 1. Memoize randomized decorative letter nodes to prevent layout shifts on recalculation
     const backgroundLetters = useMemo<ScatteredLetter[]>(() => {
@@ -138,10 +140,10 @@ export function AuthGate() {
     } else {
     return (
         <div className="bg-background h-full  text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
-            <main className="flex-grow flex items-center justify-center relative py-xl px-margin-mobile">
+            <main className="grow flex items-center justify-center relative py-xl px-margin-mobile">
                 {/* Structural Floating Badges */}
                 <div className="absolute top-20 left-10 sticker-float hidden lg:block">
-                    <div className="bg-sky-blue border-2 border-deep-ink p-4 rotate-[-12deg] neubrutalist-shadow flex items-center justify-center">
+                    <div className="bg-sky-blue border-2 border-deep-ink p-4 rotate-12 neubrutalist-shadow flex items-center justify-center">
                         <span
                             className="material-symbols-outlined text-4xl"
                             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -155,7 +157,7 @@ export function AuthGate() {
                     className="absolute bottom-20 right-10 sticker-float hidden lg:block"
                     style={{ animationDelay: "-1.5s" }}
                 >
-                    <div className="bg-action-red border-2 border-deep-ink p-4 rotate-[12deg] neubrutalist-shadow flex items-center justify-center">
+                    <div className="bg-action-red border-2 border-deep-ink p-4 rotate-12deg neubrutalist-shadow flex items-center justify-center">
                         <span
                             className="material-symbols-outlined text-4xl text-paper-white"
                             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -191,7 +193,7 @@ export function AuthGate() {
                 ))}
 
                 {/* Modular Interactive Access Panel Block */}
-                <section className="w-full max-w-2xl bg-sky-blue border-[4px] border-deep-ink p-lg md:p-xl relative neubrutalist-shadow-large mode-transition z-10">
+                <section className="w-full max-w-2xl bg-sky-blue border-4px border-deep-ink p-lg md:p-xl relative neubrutalist-shadow-large mode-transition z-10">
                     {/* Card Label */}
                     <div className="absolute top-6 left-1/2 translate-x-1/2 bg-deep-ink text-paper-white px-md py-xs border-[3px] border-deep-ink font-label-bold uppercase whitespace-nowrap transition-all">
                         {mode === "signup" ? "New Player" : "Returning Player"}
@@ -236,7 +238,7 @@ export function AuthGate() {
                         </div>)}
 
                         {/* Email Field Panel -> Mounts only on account creations */}
-                  
+
                             <div className="space-y-xs transition-all duration-300">
                                 <label
                                     htmlFor="email-input"
@@ -258,8 +260,7 @@ export function AuthGate() {
                                 />
                             </div>
                         {/* Grid Container adjusts layout constraints dynamically */}
-                        <div
-                            className={`grid grid-cols-1 gap-md transition-all duration-300 ${mode === "signup" ? "md:grid-cols-2" : ""}`}
+                        <div className={`grid grid-cols-1 gap-md transition-all duration-300 ${mode === "signup" ? "md:grid-cols-2" : ""}`}
                         >
                             <div className="space-y-xs">
                                 <label
@@ -270,21 +271,15 @@ export function AuthGate() {
                                 </label>
                                 <input
                                     id="password-input"
-                                    type="password"
-                                    autoComplete={
-                                        mode === "signup"
-                                            ? "new-password"
-                                            : "current-password"
-                                    }
+                                    type={showPassword? "text":"password"}
+                                    autoComplete={ mode === "signup"? "new-password" : "current-password"}
                                     value={password}
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
+                                    onChange={(e) =>setPassword(e.target.value)}
                                     onKeyDown={handleKeyDownAnimation}
-                                    placeholder="••••••••"
+                                    placeholder="password"
                                     required
                                     disabled={state.status === "is-loading"}
-                                    className="w-full bg-paper-white border-[3px] border-deep-ink p-md font-label-mono focus:ring-0 focus:border-action-red transition-colors outline-none"
+                                    className="w-full bg-paper-white text-deep-ink border-[3px] border-deep-ink p-md font-label-mono focus:ring-0 focus:border-action-red transition-colors outline-none"
                                 />
                                 {mode === "login" && (
                                     <div className="pt-1">
@@ -309,7 +304,7 @@ export function AuthGate() {
                                     </label>
                                     <input
                                         id="confirm-input"
-                                        type="password"
+                                        type={showPassword? "text":"password"}
                                         autoComplete="new-password"
                                         value={confirmPassword}
                                         onChange={(e) =>
@@ -322,7 +317,10 @@ export function AuthGate() {
                                         className="w-full bg-paper-white border-[3px] border-deep-ink p-md font-label-mono focus:ring-0 focus:border-action-red transition-colors outline-none"
                                     />
                                 </div>
-                            )}
+                )}
+                <button type="button" className="flex flex-row gap-2" onClick={() => setShowPassword(prev => !prev)}>
+                  <Eye className="texttext-deep-ink" /> { showPassword? "Hide Password": "View Password" }
+                </button>
                         </div>
 
                         {/* Main CTA Submission Button Control */}
@@ -358,7 +356,7 @@ export function AuthGate() {
             </main>
             <Footer/>
         </div>
-    );  
+    );
     }
-   
+
 }
