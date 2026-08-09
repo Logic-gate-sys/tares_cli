@@ -35,7 +35,7 @@ export function usePlayerSocket(token: string) {
     };
   }, [token]);
   
-  // sending message to socket server 
+  // a helper to send client messages to socket server 
   const send = useCallback((message: ClientMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(message));

@@ -1,4 +1,4 @@
-import { AuthProvider } from "./state/context/auth-context";
+import { AuthProvider } from "#state/auth-reducer";
 import { AuthGate } from "#pages/auth-gate";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Home } from "#pages/home/index";
@@ -8,26 +8,26 @@ import { Game } from "#pages/game/layout";
 import HomeLayout from "#pages/home/layout";
 
 function App() {
-    return (
-        <BrowserRouter>
-            <AuthProvider>
-                <Routes>
-                    {/*-------- Home layouts --------------*/}
-                    <Route element={<HomeLayout/>}>
-                       <Route path="/" element={<Home />} />
-                    </Route>
-                    {/*-------- Auth Gate -----------------*/}
-                    <Route element={<AuthGate/>}>
-                        <Route element={<Game/>}>
-                             <Route path="/game/lobby" element={<Lobby />} />
-                             <Route path="/game/arena" element={<Lobby />} />
-                        </Route>
-                    </Route>
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/*-------- Home layouts --------------*/}
+          <Route element={<HomeLayout />}>
+            <Route path="/" element={<Home />} />
+          </Route>
+          {/*-------- Auth Gate -----------------*/}
+          <Route element={<AuthGate />}>
+            <Route element={<Game />}>
+              <Route path="/game/lobby" element={<Lobby />} />
+              <Route path="/game/arena" element={<Lobby />} />
+            </Route>
+          </Route>
 
-                    <Route path="*" element={<NotFound />}/>
-                </Routes>
-            </AuthProvider>
-        </BrowserRouter>
-    );
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 export default App;

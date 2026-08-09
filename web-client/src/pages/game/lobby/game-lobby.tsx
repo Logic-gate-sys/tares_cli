@@ -1,10 +1,10 @@
-import { useAuth } from '#hooks/use-auth';
 import { usePlayerSocket } from '#hooks/use-socket';
 import { NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
 import type { GameRoom } from '#types/messages';
+import { useAuth } from '#state/auth-reducer';
 
 interface PlayerAvatar {
   src: string;

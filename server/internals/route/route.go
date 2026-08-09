@@ -14,11 +14,11 @@ func SetupRoute(app *app.Application) *chi.Mux {
 	// 2. Configure and inject CORS middleware at the root level
 	router.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this for production
-		AllowedOrigins:   []string{"http://localhost:5173"}, // Your Vite dev server
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedOrigins:   []string{"http://localhost:5173","http://localhost:5174"}, // Your Vite dev server
+		AllowedMethods:   []string{"GET", "POST", "PUT","PATCH","DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true, // Set to true if you are passing HTTP-only cookies or auth headers
+		AllowCredentials: true, // for  HTTP-only cookies or auth headers
 		MaxAge:           300,  // Maximum value for Preflight request caching (in seconds)
 	}))
 	router.Post("/users/signup", app.UserHandler.HandleUserSignup)
