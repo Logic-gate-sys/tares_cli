@@ -1,9 +1,10 @@
-import { apiClient } from "#services/api";
+import { apiClient } from "#services/requests";
 import { createContext, use,useEffect, useReducer } from "react";
-import type { SignupRequest, LoginRequest } from "#types/type";
+import type { SignupRequest, LoginRequest, AuthResponse } from "#types/type";
 
 
 
+// STATE & ACTION  
 export interface AuthState {
   user?: {
     id: string;
@@ -77,7 +78,7 @@ interface AuthContextType {
     logout: () => void;
 }
 
-export const AuthContext = createContext<AuthContextType|null>(null);
+const AuthContext = createContext<AuthContextType|null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(authReducer, {user: undefined, error: null, status: 'iddle', token: null});
@@ -93,7 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signup = async (data: SignupRequest) => {
         dispatch({ type: "start" });
         try {
-          const { token, user } = await apiClient.signup(data);
+          const res = await apiClient.post<SignupRequest>("/users/signup", data);
+          if (res.status >= 400) {
+            dispatch({ type: "error", payload: { errorMsg: `Failed to signup: status ${res.status}`} });
+            return;
+          }
+          const {token, user} = res.data as AuthResponse; 
           apiClient.setToken(token);
           dispatch({type:"signup", payload: {token, user:{...user}}});
         } catch (error) {
@@ -104,9 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (data: LoginRequest) => {
         dispatch({ type: "start" });
         try {
-          const { token, user } = await apiClient.login(data);
-            apiClient.setToken(token);
-            dispatch({ type: "login", payload: { token, user } });
+          const res = await apiClient.post<LoginRequest>("/users/login", data);
+          if (res.status >= 400) {
+            dispatch({ type: "error", payload: { errorMsg: `Failed to login: Status ${res.status}` } });
+            return; 
+          }
+          const { token, user } = res.data as AuthResponse; 
+          apiClient.setToken(token);
+          dispatch({ type: "login", payload: { token, user } });
         } catch (error) {
             dispatch({ type: "error", payload:{errorMsg:(error as Error).message}});
             throw error;
@@ -118,13 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: "logout" });
     };
 
-    const values: AuthContextType = {
-        state,
-        dispatch,
-        signup,
-        login,
-        logout,
-    };
+    const values: AuthContextType = { state, dispatch,signup,login,logout};
 
    // context
     return <AuthContext value={values}> { children } </AuthContext>;

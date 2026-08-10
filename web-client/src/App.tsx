@@ -12,11 +12,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/*-------- Home layouts --------------*/}
           <Route element={<HomeLayout />}>
             <Route path="/" element={<Home />} />
           </Route>
-          {/*-------- Auth Gate -----------------*/}
           <Route element={<AuthGate />}>
             <Route element={<Game />}>
               <Route path="/game/lobby" element={<Lobby />} />
