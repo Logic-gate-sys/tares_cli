@@ -6,24 +6,26 @@ import { NotFound } from "#pages/not-found";
 import { Lobby } from "#pages/game/lobby/game-lobby";
 import { Game } from "#pages/game/layout";
 import HomeLayout from "#pages/home/layout";
+import { GameContextProvider } from "#state/game-context";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route element={<HomeLayout />}>
-            <Route path="/" element={<Home />} />
-          </Route>
-          <Route element={<AuthGate />}>
-            <Route element={<Game />}>
-              <Route path="/game/lobby" element={<Lobby />} />
-              <Route path="/game/arena" element={<Lobby />} />
+        <GameContextProvider>
+          <Routes>
+            <Route element={<HomeLayout />}>
+              <Route path="/" element={<Home />} />
             </Route>
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route element={<AuthGate />}>
+              <Route element={<Game />}>
+                <Route path="/game/lobby" element={<Lobby />} />
+                <Route path="/game/arena" element={<Lobby />} />
+              </Route>
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </GameContextProvider>
       </AuthProvider>
     </BrowserRouter>
   );

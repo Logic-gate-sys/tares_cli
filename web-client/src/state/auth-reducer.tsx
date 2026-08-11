@@ -79,7 +79,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType|null>(null);
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(authReducer, {user: undefined, error: null, status: 'iddle', token: null});
 

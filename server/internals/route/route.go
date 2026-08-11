@@ -31,7 +31,7 @@ func SetupRoute(app *app.Application) *chi.Mux {
 
 		// websocket upgrade require authorisation
 		rm := ws.NewRoomManager()
-		r.Get("/ws", app.Middleware.RequireAuth(http.HandlerFunc(rm.HandleWS)))
+		r.Get("/ws", app.Middleware.RequireAuth(http.HandlerFunc(rm.HandleWS)));
 	})
 
 	// export router

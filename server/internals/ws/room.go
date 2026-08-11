@@ -2,7 +2,6 @@ package ws
 
 import (
 	"log"
-
 	"github.com/logic-gate-sys/tares-cli/internals/engine"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"github.com/logic-gate-sys/tares-cli/internals/timer"
@@ -15,20 +14,20 @@ import (
 		  2. If a message through the 'forward' channel is received , we responds also
 		  3. We make sure in sending message down the client channel , we remove any blocking client
 		         like a client that's not only or who is not able to receive message
-		# We make this so that onces the messages gets send down the client.send channel, our client's write method will pick it up and write to the client through the socket
+		# We make this so that once the messages gets send down the client.send channel, our client's write method will pick it up and write to the client through the socket
 */
 type RoomOption func(*Room)
 
 
 type Room struct {
-	Id             string                         // room unique id
-	Name           string                         // room name
-	Capacity       int                            // number of active-players
+	Id             string  `json:"id"`                   // room unique id
+	Name           string   `json:"name"`                     // room name
+	Capacity       int      `json:"capacity"`                     // number of active-players
 	inboundEvents  chan events.IngameUserAction   // events client sent to server room
 	outBoundEvents chan events.GameStateBroadcast // events to be broadcasted to clients
 	join           chan *client                   // for a client request to join a room
 	leave          chan *client                   // for a client requesting to leave a room
-	Clients        map[*client]bool               // holds all clients currently in a room
+	Clients        map[*client]bool  `json:"clients"`             // holds all clients currently in a room
 	gameEngine     *engine.Game                   //reference to game engine
 	timer          timer.GameClock
 	startGame      chan bool

@@ -60,7 +60,6 @@ func (rm *roomManager) broadcastToLobby() {
 
 // manages lobby state(creating, joining, leaving, discovering rooms)
 func (rm *roomManager) Run() {
-	// run loop
 	for {
 		select {
 		// when client joins lobby channel
@@ -170,8 +169,9 @@ var upgrader = &websocket.Upgrader{
 
 // upgrade http request into a websocket connection
 func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("<-- Websocket layer hit <--")
 	// get authenticated user
-	user := middleware.GetUser(r)
+	user := middleware.GetUser(r);
 	// upgrade http request
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

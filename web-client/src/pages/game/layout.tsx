@@ -1,20 +1,20 @@
 import { Outlet } from "react-router-dom";
 import { BottomNav, Header } from "#components/game/arena";
-import { usePlayerSocket } from "#hooks/use-socket";
-import { useAuth } from "#state/auth-reducer";
 import { AccessDenied } from "#pages/not-authorised";
+import { useGame } from "#state/game-context";
 
 export function Game() {
-  const { state } = useAuth();
-  const {connected } = usePlayerSocket(state.token)
-  if (connected) {
+  const { gameState } = useGame();
+
+  console.log("STATUS: ", gameState.conStatus)
+  if (gameState.conStatus === "connected") {
     return (<>
       <Header />
-        <Outlet />
+      <Outlet />
       <BottomNav />
-    </>)
+    </>);
   }
-  // Not connected should return not authorised page
+
   return (
     <>
       <AccessDenied />

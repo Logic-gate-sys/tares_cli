@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -49,7 +48,6 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
-	fmt.Printf("Password: %s", *usr.Password.PlainText)
 	// add context for logging and memory management
 	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
@@ -146,7 +144,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 	ch := make(chan authResponse, 1)
 
 	go func() {
-		user, err := uh.userStore.GetUserByEmail(ctx, usr.Email)
+		user,token, err := uh.userStore.GetUser(ctx, usr.Email)
 		// error could be : contextTimeout, or sql.NoRows
 		if err != nil {
 			ch <- authResponse{error: err}
@@ -163,8 +161,6 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			ch <- authResponse{error: errors.New("Invalid credential")}
 			return
 		}
-		// get user token
-		userToken, err := uh.tokenStore.GetUserToken(ctx, user.Id)
 		//issue with token
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -175,15 +171,15 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 
 		}
 		// if plaintext or token is empty, it means user needs a new token
-		if userToken == nil {
-			userToken, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
+		if token == nil {
+			token, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}
 				return
 			}
 		}
 		// send full data to channel
-		ch <- authResponse{error: nil, user: user, token: userToken}
+		ch <- authResponse{error: nil, user: user, token: token}
 	}()
 
 	// find  validate user exists

@@ -15,7 +15,8 @@ export function AuthGate() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const {handleKeyDownAnimation, backgroundLetters} = useAnimation(); 
+  const { handleKeyDownAnimation, backgroundLetters } = useAnimation();
+  
   // 2. Form submission / loading simulator
   const handleSubmitAction = async (e: React.ChangeEvent) => {
         e.preventDefault();
@@ -27,7 +28,6 @@ export function AuthGate() {
             await signup(data);
         }
     };
-
 
     // trial
     if (state.status === "is-authenticated") {
