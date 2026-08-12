@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -113,6 +114,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {
 	//decode user input
 	var usr store.User
+
 	if err := json.NewDecoder(r.Body).Decode(&usr); err != nil {
 		uh.Logger.Printf("Invalid data provided: %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"error": "Bad request"})
@@ -134,6 +136,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		return
 	default:
 	}
+
 	// response to channel
 	type authResponse struct {
 		error error
@@ -144,11 +147,9 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 	ch := make(chan authResponse, 1)
 
 	go func() {
-		user,token, err := uh.userStore.GetUser(ctx, usr.Email)
-		// error could be : contextTimeout, or sql.NoRows
+		user, err := uh.userStore.GetUserByEmail(ctx, usr.Email)
 		if err != nil {
 			ch <- authResponse{error: err}
-			fmt.Println("User not found!")
 			return
 		}
 		// compare their password
@@ -161,17 +162,16 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			ch <- authResponse{error: errors.New("Invalid credential")}
 			return
 		}
-		//issue with token
+		// token work
+		_, token, err := uh.userStore.GetUser(ctx, usr.Email)
+		// error could be : contextTimeout, or sql.NoRows
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				uh.Logger.Printf("User has no auth tokens currently in their name: creating one")
-			} else {
+			if !errors.Is(err, sql.ErrNoRows) {
 				ch <- authResponse{error: err}
+				fmt.Println("Dagn it: ", err.Error())
+				return
 			}
-
-		}
-		// if plaintext or token is empty, it means user needs a new token
-		if token == nil {
+     // else create new token 
 			token, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}

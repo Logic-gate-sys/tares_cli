@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
 type Password struct {
 	PlainText *string `json:"plain_text"`
 	Hash      []byte  `json:"-"`
@@ -109,6 +110,7 @@ type UserStore interface {
 	CreateUser(context.Context, *User) (*User, error)
 	GetUser(ctx context.Context, email string) (*User, *tokens.Token, error)
 	VerifyToken(ctx context.Context, urlStr string) (bool, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
 }
 
 // constructor
@@ -139,7 +141,9 @@ func (ps *PostresUserStore) CreateUser(ctx context.Context, user *User) (*User, 
 func (ps *PostresUserStore) GetUser(ctx context.Context, email string) (*User, *tokens.Token, error) {
 	user := &User{}
 	token := &tokens.Token{}
-	query := `SELECT u.email,u.username,u.p_level,u.total_score, t.token_hash, t.expiry, t.scope
+	query := `SELECT 
+								u.email,u.username,u.p_level,u.total_score, 
+								t.token_hash, t.expiry, t.scope
 	          FROM users u
 					  INNER JOIN tokens t ON u.id = t.user_id
 			      WHERE u.email = $1 AND t.expiry > NOW()`
@@ -156,11 +160,9 @@ func (ps *PostresUserStore) GetUser(ctx context.Context, email string) (*User, *
 	// check for errors
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, nil, errors.New("Context deadline exceeded")
+			return nil, nil, errors.New("Context timeout!")
 		}
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil, errors.New("Something went wrong")
-		}
+		return nil, nil, err
 	}
 
 	return user, token, nil
@@ -192,4 +194,22 @@ func (ps *PostresUserStore) VerifyToken(ctx context.Context, urlStr string) (*Us
 		return nil, nil, err
 	}
 	return &user, &token, nil
+}
+
+func (ps *PostresUserStore) GetUserByEmail(ctx context.Context, email string) (*User, error){
+	user := &User{}
+	query:= `SELECT id, username, password_hash
+	         FROM users 
+					 WHERE email = $1`
+
+	err := ps.db.QueryRowContext(ctx, query,email).Scan(
+		&user.Id,
+		&user.Username,
+		&user.Password.Hash,
+	)
+	if err !=nil{
+		return nil, err
+	}
+
+	return user, nil
 }
