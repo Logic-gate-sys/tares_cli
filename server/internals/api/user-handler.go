@@ -110,6 +110,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 
 }
 
+
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {
 	//decode user input
 	var usr store.User

@@ -3,7 +3,7 @@ import { type ClientMessage, type GameRoom } from "#types/messages";
 
  // "room.joined" | "room.playerLeft"
 export type LobbyState = {
-  socketStatus: "opened" | "closed" | "idle" | "connecting" |"connected" |"error";
+  socketStatus:  "disconnected" | "idle" | "connecting" |"connected" |"error";
   availableRooms: GameRoom[];
   message?: string; 
 }

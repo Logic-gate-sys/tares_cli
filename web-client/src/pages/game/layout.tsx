@@ -6,17 +6,16 @@ import type { RootState } from "#state/store";
 
 export function Game() {
   const { socketStatus } = useSelector((state: RootState) => state.lobby)
-  if (socketStatus === "connected") {
-    return (<>
-      <Header />
-      <Outlet />
+  if (socketStatus && socketStatus === "connected") {
+    return (
+    <>
+        <Header />
+        <div className="m-auto p-20 ">
+         <Outlet /> 
+        </div>
       <BottomNav />
     </>);
   }
 
-  return (
-    <>
-      <AccessDenied />
-    </>
-  )
+  return (<><AccessDenied /></> )
 }

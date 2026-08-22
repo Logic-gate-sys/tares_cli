@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
 import { useAuth } from '#state/auth-reducer';
@@ -74,14 +74,10 @@ const ARENAS_DATA: Arena[] = [
 ];
 
 export function Lobby() {
-  const { state } = useAuth();
   const dispatch = useDispatch(); 
   const {availableRooms,socketStatus, message } = useSelector((state: RootState) => state.lobby)
   const [openModal, setOpenModal] = useState<boolean>(false); 
 
-  useEffect(() => {
-    dispatch(connectSocket({url: `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(state?.token)}`}))
-  }, [dispatch, state.token])
   
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">

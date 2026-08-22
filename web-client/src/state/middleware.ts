@@ -18,9 +18,9 @@ export const socketMiddleware = (): Middleware => {
       socket.addEventListener("error", () => store.dispatch(changeSocketStatus('error')));
     };
 
-    if (!socket) return; 
+    if (!socket) return;
     // on open
-    socket.addEventListener("open", () => { store.dispatch(changeSocketStatus("opened")) });
+    socket.addEventListener("open", () => { store.dispatch(changeSocketStatus("connected")) });
     // on message arrival
     socket.addEventListener("message", (event) => {
       const res = JSON.parse(event.data) as ServerMessage;
@@ -42,8 +42,8 @@ export const socketMiddleware = (): Middleware => {
       }
     });
     // closing socket
-    socket.addEventListener("close", () => { store.dispatch(changeSocketStatus('closed')) });
-    
+    socket.addEventListener("close", () => { store.dispatch(changeSocketStatus('disconnected')) });
+
     // outbound lobby messages
     if (lobbySlice.actions.pushToLobby.match(action)) {
       if (socket && socket.readyState === WebSocket.OPEN) {
