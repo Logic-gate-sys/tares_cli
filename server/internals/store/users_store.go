@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -169,13 +170,15 @@ func (ps *PostresUserStore) GetUser(ctx context.Context, email string) (*User, *
 }
 
 func (ps *PostresUserStore) VerifyToken(ctx context.Context, urlStr string) (*User, *tokens.Token, error) {
-	user :=User{}
-	token:= tokens.Token{}
-	hash, err := base64.URLEncoding.DecodeString(urlStr)
+	user := User{}
+	token := tokens.Token{}
+	decodedStr, err := base64.URLEncoding.DecodeString(urlStr)
 	if err != nil {
 		return nil, nil, err
 	}
-	query :=`SELECT t.token_hash, t.expiry, t.scope, u.email,u.username,u.level,u.total_score
+	hashedToken := sha256.Sum256([]byte(decodedStr))
+	hash := hashedToken[:]
+	query :=`SELECT t.token_hash, t.expiry, t.scope, u.email,u.username,u.p_level,u.total_score
 	       FROM tokens t
 				 INNER JOIN users u ON u.id = t.user_id
 				 WHERE token_hash = $1 AND expiry > NOW()

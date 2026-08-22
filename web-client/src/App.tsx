@@ -1,18 +1,14 @@
 import { AuthProvider } from "#state/auth-reducer";
-import { AuthGate } from "#pages/auth-gate";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Home } from "#pages/home/index";
-import { NotFound } from "#pages/not-found";
-import { Lobby } from "#pages/game/lobby/game-lobby";
-import { Game } from "#pages/game/layout";
-import HomeLayout from "#pages/home/layout";
-import { GameContextProvider } from "#state/game-context";
+import { AuthGate, NotFound, Home, Lobby, Game, HomeLayout } from '#pages/index';
+import { Provider } from "react-redux";
+import { store } from "#state/store";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <GameContextProvider>
+        <Provider store={store}>
           <Routes>
             <Route element={<HomeLayout />}>
               <Route path="/" element={<Home />} />
@@ -25,7 +21,7 @@ function App() {
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </GameContextProvider>
+        </Provider>
       </AuthProvider>
     </BrowserRouter>
   );

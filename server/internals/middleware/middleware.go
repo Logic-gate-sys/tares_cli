@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
 )
@@ -43,7 +44,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 				utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token format"})
 				return
 			}
-			tokenStr = parts[1]; // encoded string 
+			tokenStr = parts[1] // encoded string
 		} else {
 			// Fallback: Check query string parameters for WebSocket handshakes
 			tokenStr = r.URL.Query().Get("token")
@@ -54,17 +55,17 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		// Create timeout context with 2 seconds max
+		// Create timeout context with 5 seconds max
 		ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 		defer cancel()
-    // verify token
-    user,_,err :=um.UserStore.VerifyToken(ctx, tokenStr)
+		// verify token
+		user, _, err := um.UserStore.VerifyToken(ctx, tokenStr)
 		if err != nil {
 			log.Printf("No User found for token: %s", err.Error())
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error": "Something went wrong"})
 			return
 		}
-		if user ==nil{
+		if user == nil {
 			utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error": "User not found"})
 			return
 		}

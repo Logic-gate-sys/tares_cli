@@ -18,7 +18,6 @@ export function usePlayerSocket(onMessage: (msg: ServerMessage) => void, token?:
     // open & close
     socket.addEventListener("open", () => setConnected(true));
     socket.addEventListener("close", () => setConnected(false));
-
     // message
     socket.addEventListener("message", (e) => {
       try {

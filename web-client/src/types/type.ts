@@ -1,3 +1,4 @@
+
 // Auth responses
 export type SignupRequest = {
     email: string;

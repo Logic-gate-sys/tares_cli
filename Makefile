@@ -44,7 +44,7 @@ build: build-server build-client
 pg-connect:
 	docker exec -it taresDB psql -U logic -d tares_db 
 start-pg:
-	docker compose up --build --remove-orphans
+	docker compose up 
 # needs refinement
 build-server:
 	@echo "🔨 Building Go server..."

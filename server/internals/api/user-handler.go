@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -172,7 +171,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 				return
 			}
      // else create new token 
-			token, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
+			token, err = uh.tokenStore.CreateUserToken(user.Id, 15*time.Minute, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}
 				return
@@ -199,7 +198,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		}
 		// else everything is successful
 		publicUsr := store.NewUserPublicResponse(res.user)
-		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr, "token": res.token.Hash})
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr, "token": res.token.PlainText})
 		uh.Logger.Printf("User logged in -> [traceId = %s] :%v", traceID, res)
 		return
 

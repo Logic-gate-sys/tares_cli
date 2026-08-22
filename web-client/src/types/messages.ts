@@ -1,7 +1,10 @@
 // Client → Server
 export type ClientMessage =
-  | { type: `inlobby_msg`; payload: { action: 'CREATE_ROOM', value: { name: string; capacity: number; } } }
-  | { type: 'game.join'; roomId: string }
+  | {
+    type: `inlobby_msg`; payload:
+    | { action: 'CREATE_ROOM', value: { name: string; capacity: number; } }
+    | {action: 'JOIN_ROOM', value: {roomId: string}}
+  }
   | { type: 'game.wordSubmitted'; word: string }
   | { type: 'game.action'; action: 'PAUSE' | 'RESUME' | 'STOP' }
 

@@ -33,7 +33,7 @@ func GenerateToken(user_id int, ttl time.Duration, scope string) (*Token, error)
 	}
 	//url safe token encoding
 	token.PlainText = base64.URLEncoding.EncodeToString(randomBytes)
-	hash := sha256.Sum256([]byte(token.PlainText))
+	hash := sha256.Sum256([]byte(randomBytes))
 	token.Hash = hash[:]
 	return token, nil
 }
