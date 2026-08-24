@@ -1,10 +1,10 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type ClientMessage, type GameRoom } from "#types/messages";
+import { type ClientMessage, type Room } from "#types/messages";
 
  // "room.joined" | "room.playerLeft"
 export type LobbyState = {
   socketStatus:  "disconnected" | "idle" | "connecting" |"connected" |"error";
-  availableRooms: GameRoom[];
+  availableRooms: Room[];
   message?: string; 
 }
 

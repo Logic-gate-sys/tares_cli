@@ -3,6 +3,7 @@ import { changeSocketStatus, lobbySlice, setAvailableRooms } from "./slices/lobb
 import { gameSlice } from "./slices/ingame-slice";
 import type { ServerMessage } from "#types/messages";
 
+
 // socket connection middleware
 export const socketMiddleware = (): Middleware => {
   let socket: WebSocket | null = null;
@@ -21,20 +22,16 @@ export const socketMiddleware = (): Middleware => {
     if (!socket) return;
     // on open
     socket.addEventListener("open", () => { store.dispatch(changeSocketStatus("connected")) });
-    // on message arrival
+    // messages from server socket ---> client 
     socket.addEventListener("message", (event) => {
       const res = JSON.parse(event.data) as ServerMessage;
       switch (res.type) {
-        case 'inlobby_msg':
+        case 'in:lobby':
           store.dispatch(setAvailableRooms(res.payload.data));
           break;
 
-        case "ingame_msg":
-          console.log("In game message");
-          break;
-
-        case "connection.established":
-          store.dispatch(changeSocketStatus("connected"));
+        case "in:game":
+          console.log("In game message", res.payload.data);
           break;
 
         default:

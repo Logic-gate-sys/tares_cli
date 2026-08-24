@@ -49,6 +49,7 @@ type User struct {
 	Password    Password  `json:"password"`
 	PlayerLevel string    `json:"p_level"`
 	Bio         string    `json:"bio"`
+	Avatar   string       `json:"avatar"`
 	TotalScore  int       `json:"total_score"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -120,10 +121,10 @@ func NewPostgresUserStore(db *sql.DB) *PostresUserStore {
 }
 
 func (ps *PostresUserStore) CreateUser(ctx context.Context, user *User) (*User, error) {
-	query := `INSERT INTO users (email,username,password_hash)
-	     VALUES($1,$2,$3)`
+	query := `INSERT INTO users (email,username,password_hash, avatar_url)
+	     VALUES($1,$2,$3,$4)`
 	//execute query
-	_, err := ps.db.ExecContext(ctx, query, &user.Email, &user.Username, &user.Password.Hash)
+	_, err := ps.db.ExecContext(ctx, query, &user.Email, &user.Username, &user.Password.Hash, &user.Avatar)
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

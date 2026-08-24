@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -42,12 +43,31 @@ func NewUserHandler(userStore *store.PostresUserStore, tokenStore *store.Postgre
 // Handles user signup(login), context aware to prevent memory leaks and improve performance
 func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	var usr store.User
-	err := json.NewDecoder(r.Body).Decode(&usr)
+	r.ParseMultipartForm(10 << 20)
+	file, _, err := r.FormFile("avatar")
+	if err != nil {
+		uh.Logger.Printf("Invalid data provided: %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "No file found"})
+		return
+	}
+	// upload to cloudinary
+	url, err := utils.UploadImg(file, "tares", "user_avatar")
+	
+	if err != nil {
+		uh.Logger.Printf("Failed to upload image %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"Failed to upload image": err.Error()})
+		return
+	}
+	defer file.Close()
+	
+	data := r.FormValue("data")
+	err = json.NewDecoder(strings.NewReader(data)).Decode(&usr)
 	if err != nil {
 		uh.Logger.Printf("Invalid data provided: %v", usr)
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
+	usr.Avatar= url
 	// add context for logging and memory management
 	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
@@ -110,7 +130,6 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {
 	//decode user input
 	var usr store.User
@@ -171,8 +190,8 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 				fmt.Println("Dagn it: ", err.Error())
 				return
 			}
-     // else create new token 
-			token, err = uh.tokenStore.CreateUserToken(user.Id, 15*time.Minute, tokens.AuthScope)
+			// else create new token
+			token, err = uh.tokenStore.CreateUserToken(user.Id, 30*time.Second, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}
 				return

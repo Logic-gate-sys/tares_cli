@@ -73,7 +73,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 interface AuthContextType {
     state: AuthState;
     dispatch: React.Dispatch<AuthAction>;
-    signup: (dt: SignupRequest) => Promise<void>;
+    signup: (dt: FormData) => Promise<void>;
     login: (dt: LoginRequest) => Promise<void>;
     logout: () => void;
 }
@@ -90,10 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const signup = async (data: SignupRequest) => {
+    const signup = async (data: FormData) => {
         dispatch({ type: "start" });
         try {
-          const res = await apiClient.post<SignupRequest>("/users/signup", data);
+          const res = await apiClient.post<FormData>("/users/signup", data);
           if (res.status >= 400) {
             dispatch({ type: "error", payload: { errorMsg: `Failed to signup: status ${res.status}`} });
             return;

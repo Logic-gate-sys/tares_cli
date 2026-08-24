@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
-import { useAuth } from '#state/auth-reducer';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '#state/store';
 
@@ -23,12 +22,7 @@ interface Arena {
   avatars: PlayerAvatar[];
   extraPlayersCount?: number;
 }
-// Keep hardcoded fallbacks or default UI configurations safely separate
-const VISUAL_THEMES = [
-  { bg: 'bg-primary-container', text: 'text-paper-white', icon: 'sports_esports' },
-  { bg: 'bg-secondary-container', text: 'text-deep-ink', icon: 'terminal' },
-  { bg: 'bg-tertiary-container', text: 'text-paper-white', icon: 'bolt' }
-];
+
 const ARENAS_DATA: Arena[] = [
   {
     id: 'cyberpunk-city',

@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"log"
 	"os"
+
 	"github.com/logic-gate-sys/tares-cli/internals/api"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
+	"github.com/logic-gate-sys/tares-cli/internals/migrations"
 	"github.com/logic-gate-sys/tares-cli/internals/store"
-	"github.com/logic-gate-sys/tares-cli/migrations"
 )
 
 type Application struct {
