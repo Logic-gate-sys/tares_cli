@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-import type { AxiosResponse } from "node_modules/axios/index.d.cts";
+import type { AxiosRequestConfig, AxiosResponse } from "node_modules/axios/index.d.cts";
 
 
 const REQUEST_TIMEOUT = 10000; // 10 seconds
@@ -35,7 +35,7 @@ class APIClient {
     }
   }
 
-  public async post<T>(url: string, data: T, config?: unknown): Promise<AxiosResponse> {
+  public async post<T>(url: string, data: T, config?: AxiosRequestConfig): Promise<AxiosResponse> {
     try {
       const res = await this.client.post<T>(url, data, config);
       return res;

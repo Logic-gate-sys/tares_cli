@@ -43,16 +43,16 @@ func NewUserHandler(userStore *store.PostresUserStore, tokenStore *store.Postgre
 // Handles user signup(login), context aware to prevent memory leaks and improve performance
 func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	var usr store.User
-	r.ParseMultipartForm(10 << 20)
-	file, _, err := r.FormFile("avatar")
+	// parse request as multipart form data 
+	r.ParseMultipartForm(10 << 20) // 10 * 2^20 bytes= 10MB
+	file, header, err := r.FormFile("avatar")
 	if err != nil {
-		uh.Logger.Printf("Invalid data provided: %v", err)
-		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "No file found"})
+		uh.Logger.Printf("Failed to pass formfile: %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"Failed to pass formfile": "Not multi-part request body"})
 		return
 	}
 	// upload to cloudinary
-	url, err := utils.UploadImg(file, "tares", "user_avatar")
-	
+	url, err := utils.UploadImg(file, "tares", header.Filename)
 	if err != nil {
 		uh.Logger.Printf("Failed to upload image %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"Failed to upload image": err.Error()})
@@ -67,6 +67,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
+	fmt.Printf("Avartar url: %s", url)
 	usr.Avatar= url
 	// add context for logging and memory management
 	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)

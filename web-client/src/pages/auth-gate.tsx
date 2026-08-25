@@ -51,6 +51,7 @@ export function AuthGate() {
       // Append actual File object if selected
       if (avatarFile) {
         formdata.append("avatar", avatarFile);
+        console.log("FILE: ", avatarFile)
       }
 
       await signup(formdata);
