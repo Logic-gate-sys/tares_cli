@@ -4,26 +4,12 @@ import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '#state/store';
+import { type Room } from '#types/messages';
 
-interface PlayerAvatar {
-  src: string;
-  alt: string;
-  bgClass: string;
-}
 
-interface Arena {
-  id: string;
-  name: string;
-  icon: string;
-  iconBgClass: string;
-  iconTextColorClass: string;
-  playersText: string;
-  timeLeftText: string;
-  avatars: PlayerAvatar[];
-  extraPlayersCount?: number;
-}
 
-const ARENAS_DATA: Arena[] = [
+
+const ARENAS_DATA: Room[] = [
   {
     id: 'cyberpunk-city',
     name: 'CYBERPUNK CITY',

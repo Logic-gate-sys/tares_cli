@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -28,7 +27,6 @@ type UserHandler struct {
 
 // types
 type key string
-
 const traceKey key = key("Create-TraceId")
 
 // constructor
@@ -128,7 +126,6 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error": "Request timedout"})
 		return
 	}
-
 }
 
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {

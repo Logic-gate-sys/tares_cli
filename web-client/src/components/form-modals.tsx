@@ -1,27 +1,40 @@
 import type { ClientMessage } from "#types/messages";
-import { useState, type FormEvent } from "react"
+import { type RoomCreateType } from "#types/entities";
+import { useState, useCallback } from "react";
+import { ICONBG_CLASS, ICONTEXTCOLOR_CLSS } from '#components/constants';
 
-// Cleaned up the types so TypeScript knows exactly what to expect
+
 type FormModalProps = {
   onSubmit: (data:ClientMessage) => void;
-  onClose?: () => void; // Added an optional close handler for your X button
+  onClose?: () => void; 
 }
 
-export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
-  // Use a strict type instead of Record<string, unknown> to catch typos early
-  const [data, setData] = useState({
+const initData = {
     name: '',
-    capacity: 2 // default matching your first select option
-  })
+    capacity:0,
+    iconBgClass: ICONBG_CLASS[Math.random() * ICONBG_CLASS.length],
+    iconTextColorClass: ICONTEXTCOLOR_CLSS[Math.random() * ICONTEXTCOLOR_CLSS.length]
+  }
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault(); // Stops the page from refreshing
-    if (!data.name.trim()) return; // Optional: basic validation to ensure a name exists
-    
-    onSubmit({
-      type: 'inlobby_msg',
-      payload: {action:'CREATE_ROOM', value:{name: data.name, capacity: data.capacity}}
-    });
+export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
+  const [data, setData] = useState<RoomCreateType>(initData);
+  const [icon, setIcon] = useState<File | null>();
+
+  useCallback(() => {
+    setData(prev => ({
+      ...prev,
+      
+    }))
+  }, [])
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!data.name.trim() || !icon) return;
+    const formData = new FormData();
+    formData.append("icon", icon);
+    formData.append("data", JSON.stringify(data));
+    console.log("FILE: ", icon);
+    onSubmit({type: 'in:lobby',payload: {action:'room:create', value:formData}});
     onClose()
   }
 
@@ -49,7 +62,7 @@ export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
                   className="w-full p-4 border-4 border-deep-ink bg-surface font-body-lg focus:outline-none focus:ring-0 focus:border-action-red transition-colors"
                   placeholder="e.g., WORD WIZARDS"
                   type="text"
-                  value={data.name}
+                  value={data?.name}
                   onChange={e => setData(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
@@ -68,7 +81,15 @@ export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
                   <option value={10}>10 Players</option>
                 </select>
               </div>
-    
+               <label htmlFor="icon" className="font-label-bold text-deep-ink uppercase">Upload Icon<>(.svg,.png, .ico) only</></label>
+            <input id="icon" className="w-full p-4 border-4 border-deep-ink bg-surface font-body-lg focus:outline-none focus:ring-0 focus:border-action-red transition-colors"
+              type="file" accept="image/svg+xml,image/ico,image/png, .svg, .ico,.png" required
+              onChange={e => {
+                if (e.target.files[0]) {
+                  setIcon(e.target.files[0]);
+                }
+              }}
+            />
               <button 
                 className="mt-4 bg-action-red text-paper-white py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-105 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase" 
                 type="submit"

@@ -4,9 +4,12 @@
 export type ClientMessage =
   | {
     type: `in:lobby`, payload:
-      | { action: 'lobby:room:create', value: { name: string; capacity: number; } }
-      | { action: 'lobby:room:join', value: { roomId: string } }
-      | { action: 'lobby:room:leave', value: { roomId: string } }
+    | {
+      action: 'room:create',
+      value: FormData
+    }
+    | { action: 'room:join', value: { roomId: string } }
+    | { action: 'room:leave', value: { roomId: string } }
   }
 
 
@@ -14,17 +17,9 @@ export type ClientMessage =
 export type ServerMessage =
   | {
     type: 'in:lobby', payload:
-      | { which: 'rooms:available', data: Room[], message?: string }
+    | { which: 'rooms:available', data: Room[], message?: string }
   }
   | {
-    type: 'in:game', payload: 
-    |{which:'score:in', data: unknown}}
-
-
-
-export type Room = {
-  id: string;
-  status: string;
-  name: string;
-  capacity: number;
-}
+    type: 'in:game', payload:
+    | { which: 'score:in', data: unknown }
+  }
