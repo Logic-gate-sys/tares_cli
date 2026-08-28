@@ -1,22 +1,20 @@
 import React, { useState } from "react";
 import type { LoginRequest, SignupRequest } from "#types/type";
-import { useAuth } from "#state/auth-reducer";
+import { useAuth } from "#store/auth-reducer";
 import { Eye, EyeOff } from 'lucide-react';
 import { Footer } from "#components/footer";
 import { Outlet } from "react-router-dom";
-import { useAnimation } from '#components/index'; 
+import { useAnimation } from '#components/index';
 import { useDispatch } from "react-redux";
-import { connectSocket } from '#state/slices/lobby-slice';
+import { connectSocket } from '#store/slices/lobby-slice';
 
 export function AuthGate() {
   const { state, login, signup } = useAuth();
   const { handleKeyDownAnimation, backgroundLetters } = useAnimation();
   const dispatch = useDispatch();
-
   // Separate UI control state from form field data
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
-
   // Form field state
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -28,9 +26,9 @@ export function AuthGate() {
     e.preventDefault();
 
     if (mode === "login") {
-      const loginData: LoginRequest = { 
-        email, 
-        password: { plain_text: password } 
+      const loginData: LoginRequest = {
+        email,
+        password: { plain_text: password }
       };
       await login(loginData);
     } else {
@@ -39,15 +37,15 @@ export function AuthGate() {
         return;
       }
 
-      const signupData: SignupRequest = { 
-        email, 
-        username, 
-        password: { plain_text: password } 
+      const signupData: SignupRequest = {
+        email,
+        username,
+        password: { plain_text: password }
       };
 
       const formdata = new FormData();
       formdata.append("data", JSON.stringify(signupData));
-      
+
       // Append actual File object if selected
       if (avatarFile) {
         formdata.append("avatar", avatarFile);
@@ -62,7 +60,7 @@ export function AuthGate() {
   if (state.status === "is-authenticated" && state.token) {
     dispatch(connectSocket({ url: `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(state.token)}` }));
     return <Outlet />;
-  }
+  };
 
   return (
     <div className="bg-background h-full text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
@@ -242,8 +240,8 @@ export function AuthGate() {
               {state.status === "is-loading"
                 ? "Verifying..."
                 : mode === "signup"
-                ? "Sign Up"
-                : "Log In"}
+                  ? "Sign Up"
+                  : "Log In"}
             </button>
           </form>
 

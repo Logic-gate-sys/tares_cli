@@ -1,31 +1,24 @@
-import type { ClientMessage } from "#types/messages";
 import { type RoomCreateType } from "#types/entities";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { ICONBG_CLASS, ICONTEXTCOLOR_CLSS } from '#components/constants';
 
 
-type FormModalProps = {
-  onSubmit: (data:ClientMessage) => void;
-  onClose?: () => void; 
-}
 
 const initData = {
     name: '',
     capacity:0,
     iconBgClass: ICONBG_CLASS[Math.random() * ICONBG_CLASS.length],
     iconTextColorClass: ICONTEXTCOLOR_CLSS[Math.random() * ICONTEXTCOLOR_CLSS.length]
-  }
+}
 
-export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
+type ModalProps = {
+  onClose: () => void,
+  onSubmit: (data: FormData) => void
+}
+
+export function CreateRoomModal({ onClose, onSubmit }:ModalProps) {
   const [data, setData] = useState<RoomCreateType>(initData);
   const [icon, setIcon] = useState<File | null>();
-
-  useCallback(() => {
-    setData(prev => ({
-      ...prev,
-      
-    }))
-  }, [])
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -33,10 +26,9 @@ export function CreateRoomModal({ onSubmit, onClose }: FormModalProps) {
     const formData = new FormData();
     formData.append("icon", icon);
     formData.append("data", JSON.stringify(data));
-    console.log("FILE: ", icon);
-    onSubmit({type: 'in:lobby',payload: {action:'room:create', value:formData}});
+    onSubmit(formData)
     onClose()
-  }
+ };
 
   return (
       <>

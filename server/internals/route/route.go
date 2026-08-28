@@ -14,7 +14,7 @@ func SetupRoute(app *app.Application) *chi.Mux {
 	// 2. Configure and inject CORS middleware at the root level
 	router.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this for production
-		AllowedOrigins:   []string{"http://localhost:5173","http://localhost:5174"}, // Your Vite dev server
+		AllowedOrigins:   []string{"http://localhost:5173","http://localhost:5174"}, 
 		AllowedMethods:   []string{"GET", "POST", "PUT","PATCH","DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -28,7 +28,8 @@ func SetupRoute(app *app.Application) *chi.Mux {
 	router.Group(func(r chi.Router) {
 		// authenticate all routes here
 		r.Use(app.Middleware.Authenticate)
-
+		r.Post("/rooms", app.Middleware.RequireAuth(http.HandlerFunc(app.RoomHandler.HandleCreateRoom)))
+		r.Get("/rooms", app.Middleware.RequireAuth(http.HandlerFunc(app.RoomHandler.HandleGetRooms)))
 		// websocket upgrade require authorisation
 		rm := ws.NewRoomManager()
 		r.Get("/ws", app.Middleware.RequireAuth(http.HandlerFunc(rm.HandleWS)));

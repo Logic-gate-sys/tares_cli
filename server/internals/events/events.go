@@ -5,9 +5,9 @@ import "encoding/json"
 type lobbyAction string
 
 const (
-	CreateRoom lobbyAction = "CREATE_ROOM"
-	JoinRoom   lobbyAction = "JOIN_ROOM"
-	GetRooms   lobbyAction = "GET_ROOMS"
+	CreateRoom lobbyAction = "room:create"
+	JoinRoom   lobbyAction = "room:join"
+	LeaveRoom   lobbyAction = "room:leave"
 )
 
 type GameRoomAction string
@@ -21,8 +21,8 @@ const (
 
 type InlobbyUserAction struct {
 	User   *Player
-	Action lobbyAction    `json:"action"`
-	Value  map[string]any `json:"value"`
+	Action lobbyAction   `json:"action"`
+	Value  interface{}   `json:"value"`
 }
 
 type IngameUserAction struct {
@@ -50,8 +50,12 @@ type GameStateBroadcast struct {
 	Message       string         `json:"message"`
 	Data          interface{}    `json:"data"` // any optional data supplied in broadcast
 }
-
+type Which string 
+const (
+	AvailableRooms Which ="available:rooms"
+)
 type LobbyStateBroadcast struct {
+	Which   Which       `json:"which"`
 	Data    interface{} `json:"data"`
 	Message string      `json:"message"`
 }
@@ -66,10 +70,9 @@ const (
 )
 
 type message string
-
 const (
-	Ingame  message = "ingame_msg"  // related to lobby
-	Inlobby message = "inlobby_msg" // related to in game
+	Ingame  message = "in:game"  
+	Inlobby message = "in:lobby" 
 )
 
 // any message from client or server is in this format

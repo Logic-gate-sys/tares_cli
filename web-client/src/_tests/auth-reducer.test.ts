@@ -1,4 +1,4 @@
-import { authReducer, initialAuthState, type AuthAction } from '#state/auth-reducer'
+import { authReducer, initialAuthState, type AuthAction } from 'src/store/auth-reducer'
 import { describe, it, expect } from 'vitest'
 
 describe('Auth Reducer test: ', () => {

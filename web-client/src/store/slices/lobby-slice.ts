@@ -1,13 +1,13 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type ClientMessage, type Room } from "#types/messages";
+import {type Room } from "#types/entities"
 
- // "room.joined" | "room.playerLeft"
+
+// "room.joined" | "room.playerLeft"
 export type LobbyState = {
   socketStatus:  "disconnected" | "idle" | "connecting" |"connected" |"error";
   availableRooms: Room[];
   message?: string; 
 }
-
 
 const initialState: LobbyState = {
   availableRooms: [],
@@ -25,10 +25,13 @@ export const lobbySlice = createSlice({
       state.availableRooms = action.payload
     },
     connectSocket: (state, action: PayloadAction<{ url: string }>) => { },
-    pushToLobby: (state, action: PayloadAction<ClientMessage>) => { }, 
+    pushToLobby: (state, action: PayloadAction<unknown>) => { },
+    createRoom: (state, action: PayloadAction<unknown>) => { },
   },
-})
+});
 
 
-export const { changeSocketStatus, setAvailableRooms, pushToLobby, connectSocket} = lobbySlice.actions;
+// { type: 'in:lobby', payload: { action: 'room:create', value: formData } }
+
+export const { changeSocketStatus, setAvailableRooms, pushToLobby,createRoom, connectSocket} = lobbySlice.actions;
 export default lobbySlice.reducer; 

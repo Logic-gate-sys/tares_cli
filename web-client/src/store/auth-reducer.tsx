@@ -1,4 +1,4 @@
-import { apiClient } from "#services/requests";
+import { apiClient } from "#store/services/requests";
 import { createContext, use,useEffect, useReducer } from "react";
 import type { SignupRequest, LoginRequest, AuthResponse } from "#types/type";
 

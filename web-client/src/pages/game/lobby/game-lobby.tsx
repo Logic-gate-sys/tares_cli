@@ -2,9 +2,11 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '#state/store';
-import { type Room } from '#types/messages';
+import {  useSelector } from 'react-redux';
+import type { RootState } from 'src/store/store';
+import { type Room } from '#types/entities';
+import { useCreateRoomMutation } from '#store/services/room-extend';
+import { Loader } from '#components/ui/loader';
 
 
 
@@ -54,9 +56,9 @@ const ARENAS_DATA: Room[] = [
 ];
 
 export function Lobby() {
-  const dispatch = useDispatch(); 
   const {availableRooms,socketStatus, message } = useSelector((state: RootState) => state.lobby)
   const [openModal, setOpenModal] = useState<boolean>(false); 
+  const [createRoom, { isLoading}] = useCreateRoomMutation();
 
   
   return (
@@ -269,8 +271,9 @@ export function Lobby() {
         </NavLink>
       </nav>
         {/*--------------- MODAL FORM -------------------------*/}
-        {openModal && (<CreateRoomModal onSubmit={dispatch} onClose={() => setOpenModal(false)} />)}
-        {(message?.type==='inlobby_msg' || message?.type==='ingame_msg') &&(<Notification />)}
+        {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={createRoom} />)}
+        {isLoading && (<Loader />)}
+       {message && (<Notification />)}
       </main>
       
     </div> 
