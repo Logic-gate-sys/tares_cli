@@ -1,10 +1,10 @@
 
-export const Loader =  ({progress = 0,loadingText = "Loading...",statusText = "SCRAMBLING_DATA_"}) => {
+export const Loader =  ({ progress = 0,loadingText = "Loading...",statusText = "SCRAMBLING_DATA_"}) => {
   // Clamp progress between 0 and 100 to prevent layout overflow
   const clampedProgress = Math.min(Math.max(progress, 0), 100);
 
   return (
-    <div className="absolute z-50 left-0 right-0 bottom-0 top-0 min-h-screen bg-surface flex items-center justify-center">
+    <div className="fixed z-50 left-0 right-0 bottom-0 top-0 min-h-screen bg-surface flex items-center justify-center">
     <div className="flex flex-col items-center justify-center w-full px-4 max-w-2xl mx-auto">
       {/* Loading Text with Jitter Animation */}
       <div className="font-headline-lg text-headline-lg text-action-red mb-4 uppercase tracking-tighter animate-jitter">

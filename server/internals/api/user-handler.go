@@ -189,7 +189,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 			// else create new token
-			token, err = uh.tokenStore.CreateUserToken(user.Id, 30*time.Second, tokens.AuthScope)
+			token, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
 			if err != nil {
 				ch <- authResponse{error: err}
 				return

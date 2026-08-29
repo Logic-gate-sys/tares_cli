@@ -9,10 +9,11 @@ import { useDispatch } from "react-redux";
 import { connectSocket } from '#store/slices/lobby-slice';
 import { setToken } from "#store/slices/auth-slice";
 import { Loader } from "#components/ui/loader";
+import { MessageBox } from "#components/ui/notification";
 
 
 export function AuthGate() {
-  const { state, login, signup } = useAuth();
+  const { state, login, signup, restore } = useAuth();
   const { handleKeyDownAnimation, backgroundLetters } = useAnimation();
   const dispatch = useDispatch();
   // Separate UI control state from form field data
@@ -61,7 +62,7 @@ export function AuthGate() {
 
   // Authenticated state handling
   if (state.status === "is-authenticated" && state.token) {
-    // auth should have token 
+    // auth should have token
     dispatch(setToken(state.token));
     dispatch(connectSocket({ url: `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(state.token)}` }));
     return <Outlet />;
@@ -69,7 +70,11 @@ export function AuthGate() {
 
   return (
     <div className=" bg-background h-full text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
-      {state.status==="is-loading" && <Loader progress={state.progress}/>}
+      {state.status === "is-loading" && <Loader progress={state.progress} />}
+      {state.status === "error" &&
+        <MessageBox title={"Auth Error!"} message={(state.error as string).split(".")} onClose={() => restore("error")} onContinue={() => restore("error")} />}
+      {state.message &&
+        <MessageBox title={"Auth Success"} message={(state.message as string).split(".")} onClose={() => restore("success")} onContinue={() => restore("success")} />}
       <main className="grow flex items-center justify-center relative py-xl px-margin-mobile">
         {/* Floating Badges */}
         <div className="absolute top-20 left-10 sticker-float hidden lg:block">

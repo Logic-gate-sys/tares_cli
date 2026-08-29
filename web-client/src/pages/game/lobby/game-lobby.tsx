@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
-import { Notification } from '#components/ui/notification';
+import { MessageBox } from '#components/ui/notification';
 import { useSelector } from 'react-redux';
 import type { RootState } from 'src/store/store';
 import { type Room } from '#types/entities';
@@ -61,8 +61,48 @@ const ARENAS_DATA: Room[] = [
 export function Lobby() {
   const { availableRooms, socketStatus, message } = useSelector((state: RootState) => state.lobby)
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [createRoom, { isLoading }] = useCreateRoomMutation();
+  const [createRoom, { isLoading, isSuccess, isError, error }] = useCreateRoomMutation();
+  const [progress, setProgress] = useState<number>(35);
+  const [showLoader, setShowLoader] = useState(false);
+  const [showMsg, setShowMsg] = useState<boolean>(false); 
 
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout;
+    const runProgress = () => {
+      if (isLoading) {
+        // Start loading sequence
+        setShowLoader(true);
+        setProgress(15); // Initial jump
+        // Slowly creep up to 85% while waiting for the server
+        progressInterval = setInterval(() => {
+          setProgress((prev) => (prev < 85 ? prev + Math.floor(Math.random() * 10) + 5 : prev));
+        }, 400);
+
+      } else if (isSuccess) {
+        // Snap to 100% on success
+        setProgress(100);
+        // Keep the loader on screen just long enough for the user to see "100%"
+        setTimeout(() => {
+          setShowLoader(false);
+          setOpenModal(false); 
+          setProgress(0);
+        }, 600);
+
+        setShowMsg(true); 
+
+      } else if (isError) {
+        // Handle failure (optional: show an error state in the loader)
+        setShowLoader(false);
+        setShowMsg(true)
+        setProgress(0);
+      }
+    }
+    runProgress();
+    // Cleanup interval on unmount or state change
+    return () => clearInterval(progressInterval);
+  }, [isLoading, isSuccess, isError]);
+
+  
   const handleCreateRoom = async (data: FormData) => {
     try {
       const res = await createRoom(data).unwrap();
@@ -283,8 +323,8 @@ export function Lobby() {
         </nav>
         {/*--------------- MODAL FORM -------------------------*/}
         {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
-        {isLoading && (<Loader />)}
-        {message && (<Notification />)}
+        {showMsg && <MessageBox message={message.split('.')}  onClose={()=>setShowMsg(false)} onContinue={()=> setShowMsg(false)} />}
+        {showLoader && <Loader progress={progress} />}
       </main>
 
     </div>

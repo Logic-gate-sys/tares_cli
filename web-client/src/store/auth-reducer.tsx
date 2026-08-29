@@ -13,6 +13,7 @@ export interface AuthState {
   };
   token?: string | null;
   status: "iddle" | "is-loading" | "error" | "is-authenticated" | "loggedout";
+  message?: string; 
   progress?: 35 | 65 | 100 | 0
   error: unknown;
 }
@@ -25,10 +26,18 @@ export type AuthAction =
   | { type: "error", payload: { errorMsg: string } }
   | { type: "progress", payload: { amount: 35 | 65 | 100 | 0 } }
   | { type: "start" }
+  | {type: "restore", payload:{ type:"success" |"error"}}
 
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
+    case "restore":
+      return {
+        ...state,
+        status: "iddle",
+        message: action.payload.type==="success"? "" : state.message,
+        error: ""
+      }; 
     case "start":
       return {
         ...state,
@@ -55,6 +64,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
+        message: "Sign up successful! Login ",
         status: "is-authenticated"
       }
     case "logout":
@@ -71,6 +81,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
     case "error":
       return {
         ...state,
+        status: "error",
         error: action.payload.errorMsg
       }
     default:
@@ -85,6 +96,7 @@ interface AuthContextType {
   signup: (dt: FormData) => Promise<void>;
   login: (dt: LoginRequest) => Promise<void>;
   logout: () => void;
+  restore: (type: string ) => void; 
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -124,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'progress', payload: { amount: 35 } })
     try {
       const res = await apiClient.post<LoginRequest>("/users/login", data);
+      console.log("STATUS: ", res);
       if (res.status >= 400) {
         dispatch({ type: "error", payload: { errorMsg: `Failed to login: Status ${res.status}` } });
         dispatch({ type: "progress", payload: { amount: 100 } })
@@ -148,7 +161,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "progress", payload: { amount: 100 } })
   };
 
-  const values: AuthContextType = { state, dispatch, signup, login, logout };
+  const restore = (type: "success" |"error") => {
+    dispatch({ type: 'restore', payload:{type: type} });
+  }
+  const values: AuthContextType = { state, dispatch, signup, login, logout, restore };
 
   // context
   return <AuthContext value={values}> {children} </AuthContext>;

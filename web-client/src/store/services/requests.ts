@@ -1,5 +1,4 @@
-import axios, { type AxiosInstance } from "axios";
-import type { AxiosRequestConfig, AxiosResponse } from "node_modules/axios/index.d.cts";
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 
 const REQUEST_TIMEOUT = 10000; // 10 seconds
@@ -10,12 +9,11 @@ class APIClient {
 
   constructor() {
     const baseURL = import.meta.env.VITE_BASE_URL;
+    this.token = localStorage.getItem("token");
     this.client = axios.create({
       baseURL,
       timeout: REQUEST_TIMEOUT, // 10 seconds request timeout
-      headers: {
-        "Content-Type":"application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
     // Auto-inject token on every request
     this.client.interceptors.request.use((config) => {
@@ -27,53 +25,76 @@ class APIClient {
   }
 
   setToken(token: string | null) {
-    this.token = token;
+    if (token) {
+      // set to local storage
+      localStorage.setItem("token", token)
+    } else {
+      localStorage.removeItem("token")
+    }
+
+    this.token = token; 
   }
   getToken(): string {
     if (this.token) {
       return this.token;
     }
+    this.token = localStorage.getItem("token")
+    return this.token;
   }
 
   public async post<T>(url: string, data: T, config?: AxiosRequestConfig): Promise<AxiosResponse> {
     try {
-      const res = await this.client.post<T>(url, data, config);
-      return res;
+      return await this.client.post<T>(url, data, config);
     } catch (err: unknown) {
+      if (err && (err as AxiosResponse).status >= 400) {
+        console.log("Status: ", (err as AxiosResponse).status);
+        return (err as AxiosResponse);
+      }
       console.log("Error occured: ", err)
-      throw new Error("Request failed with error: ", err);
+      throw err;
     }
   }
 
   public async patch<T>(url: string, data: T, config?: unknown): Promise<AxiosResponse> {
     try {
-      const res = await this.client.patch<T>(url, data, config);
-      return res;
+      return await this.client.patch<T>(url, data, config);
     } catch (err: unknown) {
+      if (err && (err as AxiosResponse).status >= 400) {
+        console.log("Status: ", (err as AxiosResponse).status);
+        return (err as AxiosResponse);
+      }
       console.log("Error occured: ", err)
-      throw new Error("Request failed with error: ", err)
+      throw err;
     }
   }
 
   public async put<T>(url: string, data: T, config?: unknown): Promise<AxiosResponse> {
     try {
-      const res = await this.client.put<T>(url, data, config);
-      return res;
+      return await this.client.put<T>(url, data, config);
     } catch (err: unknown) {
+      if (err && (err as AxiosResponse).status >= 400) {
+        console.log("Status: ", (err as AxiosResponse).status);
+        return (err as AxiosResponse);
+      }
       console.log("Error occured: ", err)
-      throw new Error("Request failed with error: ", err)
+      throw err;
     }
   }
 
   public async get<T>(url: string, config?: unknown): Promise<AxiosResponse> {
     try {
-      const res = await this.client.get<T>(url, config);
-      return res;
+      return await this.client.get<T>(url, config);
     } catch (err: unknown) {
+      if (err && (err as AxiosResponse).status >= 400) {
+        console.log("Status: ", (err as AxiosResponse).status);
+        return (err as AxiosResponse);
+      }
       console.log("Error occured: ", err)
-      throw new Error("Request failed with error: ", err)
+      throw err;
     }
   }
-}
 
+}  
+
+// export api client for use out there 
 export const apiClient = new APIClient();
