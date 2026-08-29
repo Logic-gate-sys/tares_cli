@@ -65,6 +65,7 @@ export function Lobby() {
   const [progress, setProgress] = useState<number>(35);
   const [showLoader, setShowLoader] = useState(false);
   const [showMsg, setShowMsg] = useState<boolean>(false); 
+  const [statusMsg, setStatusMsg] = useState < { title: string, msg: string }>( {title:"", msg:""}); 
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout;
@@ -88,19 +89,21 @@ export function Lobby() {
           setProgress(0);
         }, 600);
 
-        setShowMsg(true); 
+        setShowMsg(true);
+        setStatusMsg(prev => ({...prev, title: "Room creation successful", msg: "Room created"}) ) 
 
       } else if (isError) {
         // Handle failure (optional: show an error state in the loader)
         setShowLoader(false);
         setShowMsg(true)
+        setStatusMsg(prev => ({...prev, title: "Room creation failed", msg: error as string}) ) 
         setProgress(0);
       }
     }
     runProgress();
     // Cleanup interval on unmount or state change
     return () => clearInterval(progressInterval);
-  }, [isLoading, isSuccess, isError]);
+  }, [isLoading, isSuccess, isError, error]);
 
   
   const handleCreateRoom = async (data: FormData) => {
@@ -323,7 +326,7 @@ export function Lobby() {
         </nav>
         {/*--------------- MODAL FORM -------------------------*/}
         {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
-        {showMsg && <MessageBox message={message.split('.')}  onClose={()=>setShowMsg(false)} onContinue={()=> setShowMsg(false)} />}
+        {showMsg && <MessageBox title={statusMsg.title} message={(statusMsg.msg).split(".")}  onClose={()=>setShowMsg(false)} onContinue={()=> setShowMsg(false)} />}
         {showLoader && <Loader progress={progress} />}
       </main>
 
