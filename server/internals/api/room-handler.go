@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/logic-gate-sys/tares-cli/internals/middleware"
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
 )
@@ -23,6 +25,7 @@ func NewRoomHandler(rs *store.PostGresRoomStore, lg *log.Logger) *RoomHandler {
 
 func (rh *RoomHandler) HandleCreateRoom( w http.ResponseWriter, r *http.Request,) {
 	var roomBody store.CreateRoom
+	user :=middleware.GetUser(r)
 	r.ParseMultipartForm(10 << 20)
 	// parse file
 	iconfile, header, err := r.FormFile("icon")
@@ -47,6 +50,7 @@ func (rh *RoomHandler) HandleCreateRoom( w http.ResponseWriter, r *http.Request,
 		return
 	}
 	roomBody.Icon = url
+	roomBody.OwnerId = user.Id
 
 	room, err := rh.RoomStore.CreateRoom(&roomBody, r.Context())
 	if err != nil {

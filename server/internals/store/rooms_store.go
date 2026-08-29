@@ -18,7 +18,7 @@ const (
 
 type CreateRoom struct {
 	Id                 string    `json:"id"` // room unique id
-	OwnerId            string    `json:"owner_id"`
+	OwnerId            int       `json:"owner_id"`
 	Name               string    `json:"name"`     // room name
 	Capacity           int       `json:"capacity"` // number of active-players
 	Status             Status    `json:"status"`

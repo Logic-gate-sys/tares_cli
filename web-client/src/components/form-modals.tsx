@@ -3,7 +3,6 @@ import { useState } from "react";
 import { ICONBG_CLASS, ICONTEXTCOLOR_CLSS } from '#components/constants';
 
 
-
 const initData = {
     name: '',
     capacity:0,
@@ -16,17 +15,17 @@ type ModalProps = {
   onSubmit: (data: FormData) => void
 }
 
-export function CreateRoomModal({ onClose, onSubmit }:ModalProps) {
+export function CreateRoomModal({ onClose, onSubmit }: ModalProps) {
   const [data, setData] = useState<RoomCreateType>(initData);
   const [icon, setIcon] = useState<File | null>();
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     if (!data.name.trim() || !icon) return;
     const formData = new FormData();
     formData.append("icon", icon);
     formData.append("data", JSON.stringify(data));
-    onSubmit(formData)
+    onSubmit(formData);
     onClose()
  };
 

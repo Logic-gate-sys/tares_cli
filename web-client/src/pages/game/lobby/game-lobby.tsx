@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { Notification } from '#components/ui/notification';
-import {  useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import type { RootState } from 'src/store/store';
 import { type Room } from '#types/entities';
 import { useCreateRoomMutation } from '#store/services/room-extend';
@@ -15,6 +15,7 @@ const ARENAS_DATA: Room[] = [
   {
     id: 'cyberpunk-city',
     name: 'CYBERPUNK CITY',
+    capacity: 8,
     icon: 'sports_esports',
     iconBgClass: 'bg-primary-container',
     iconTextColorClass: 'text-paper-white',
@@ -29,10 +30,11 @@ const ARENAS_DATA: Room[] = [
   {
     id: 'hacker-zenith',
     name: 'HACKER ZENITH',
+    capacity: 8,
     icon: 'terminal',
     iconBgClass: 'bg-secondary-container',
     iconTextColorClass: 'text-deep-ink',
-    playersText: '2/4 Players',
+    playersText: '2/8 Players',
     timeLeftText: 'Starting Soon',
     avatars: [
       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCURNcvzYRg2m1fZfp1lU0x6fhDS-iMC4U25W04dxetpXSGYaCoOp-nIQRiYIpsX1CyBdrpFY6nXimW80xLs8SL0ORxj9clrSDKJA-E1ebTyob7SkA6edvrNg8X0FAu8pQeN6jOYVy8houupFCKY0rb3wS4jOtPZpb3DJiw2ezjsQogXXzCVzXtVHNH_MRdmo0LShdMG_J_tBZdReVB7Zi9ewMIkIH8wji1zd6trhhLO8jEcVCXH_5RNC-l4PlzijKEjgXchXFz_H5e', alt: 'Futuristic hacker avatar', bgClass: 'bg-tertiary-fixed' },
@@ -42,6 +44,7 @@ const ARENAS_DATA: Room[] = [
   {
     id: 'speed-runners',
     name: 'SPEED RUNNERS',
+    capacity: 8,
     icon: 'bolt',
     iconBgClass: 'bg-tertiary-container',
     iconTextColorClass: 'text-paper-white',
@@ -56,11 +59,19 @@ const ARENAS_DATA: Room[] = [
 ];
 
 export function Lobby() {
-  const {availableRooms,socketStatus, message } = useSelector((state: RootState) => state.lobby)
-  const [openModal, setOpenModal] = useState<boolean>(false); 
-  const [createRoom, { isLoading}] = useCreateRoomMutation();
+  const { availableRooms, socketStatus, message } = useSelector((state: RootState) => state.lobby)
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [createRoom, { isLoading }] = useCreateRoomMutation();
 
-  
+  const handleCreateRoom = async (data: FormData) => {
+    try {
+      const res = await createRoom(data).unwrap();
+      console.log('ROOM CREATION RES: ', res)
+      setOpenModal(false)
+    } catch (err: unknown) {
+      console.error("Failed to create room: ", err)
+    }
+  }
   return (
     <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
@@ -98,7 +109,7 @@ export function Lobby() {
           border: 2px solid #121721;
         }
       `}} />
-       
+
       <main className="pt-24 pb-24 px-4 md:px-margin-desktop min-h-screen relative">
         {/* Stickers / Decorative elements */}
         <div className="absolute top-28 right-10 animate-float sticker z-0 hidden lg:block">
@@ -129,7 +140,7 @@ export function Lobby() {
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>bolt</span>
               </button>
               <button className="bg-paper-white text-deep-ink px-12 py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-[1.02] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4"
-                onClick={()=> setOpenModal(true)}>
+                onClick={() => setOpenModal(true)}>
                 CREATE
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>add_circle</span>
               </button>
@@ -195,7 +206,7 @@ export function Lobby() {
               ))}
             </div>
           </div>
-         
+
           {/* Stats & Sidebar */}
           <aside className="lg:col-span-4 flex flex-col gap-8">
             {/* Quick Stats Card */}
@@ -234,48 +245,48 @@ export function Lobby() {
           </aside>
         </div>
 
-        
-      
-      {/* Bottom Navigation (Mobile Only) */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-sky-blue border-t-4 border-deep-ink shadow-[0px_-4px_0px_0px_#121721] md:hidden">
-        <NavLink
-          to="/home"
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">home</span>
-          <span className="text-label-bold font-label-bold">Home</span>
-        </NavLink>
 
-        <NavLink
-          to="/lobby"
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 border-2 border-deep-ink rounded-lg transition-all active:scale-95 ${isActive ? "bg-secondary-container text-deep-ink font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">group</span>
-          <span className="text-label-bold font-label-bold">Lobby</span>
-        </NavLink>
 
-        <NavLink
-          to="/play"
-          className="flex flex-col items-center justify-center bg-action-red text-paper-white border-2 border-deep-ink rounded-lg px-4 py-1 translate-y-[-4px] shadow-[4px_4px_0px_0px_#121721] active:scale-95 transition-transform"
-        >
-          <span className="material-symbols-outlined">videogame_asset</span>
-          <span className="text-label-bold font-label-bold">Play</span>
-        </NavLink>
+        {/* Bottom Navigation (Mobile Only) */}
+        <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-sky-blue border-t-4 border-deep-ink shadow-[0px_-4px_0px_0px_#121721] md:hidden">
+          <NavLink
+            to="/home"
+            className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
+          >
+            <span className="material-symbols-outlined">home</span>
+            <span className="text-label-bold font-label-bold">Home</span>
+          </NavLink>
 
-        <NavLink
-          to="/stats"
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">trophy</span>
-          <span className="text-label-bold font-label-bold">Stats</span>
-        </NavLink>
-      </nav>
+          <NavLink
+            to="/lobby"
+            className={({ isActive }) => `flex flex-col items-center justify-center p-2 border-2 border-deep-ink rounded-lg transition-all active:scale-95 ${isActive ? "bg-secondary-container text-deep-ink font-bold" : "text-deep-ink"}`}
+          >
+            <span className="material-symbols-outlined">group</span>
+            <span className="text-label-bold font-label-bold">Lobby</span>
+          </NavLink>
+
+          <NavLink
+            to="/play"
+            className="flex flex-col items-center justify-center bg-action-red text-paper-white border-2 border-deep-ink rounded-lg px-4 py-1 translate-y-[-4px] shadow-[4px_4px_0px_0px_#121721] active:scale-95 transition-transform"
+          >
+            <span className="material-symbols-outlined">videogame_asset</span>
+            <span className="text-label-bold font-label-bold">Play</span>
+          </NavLink>
+
+          <NavLink
+            to="/stats"
+            className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
+          >
+            <span className="material-symbols-outlined">trophy</span>
+            <span className="text-label-bold font-label-bold">Stats</span>
+          </NavLink>
+        </nav>
         {/*--------------- MODAL FORM -------------------------*/}
-        {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={createRoom} />)}
+        {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
         {isLoading && (<Loader />)}
-       {message && (<Notification />)}
+        {message && (<Notification />)}
       </main>
-      
-    </div> 
+
+    </div>
   );
 }

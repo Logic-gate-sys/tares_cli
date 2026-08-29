@@ -1,10 +1,10 @@
 import { apiClient } from "#store/services/requests";
-import { createContext, use,useEffect, useReducer } from "react";
-import type { SignupRequest, LoginRequest, AuthResponse } from "#types/type";
+import { createContext, use, useEffect, useReducer } from "react";
+import type { LoginRequest, AuthResponse } from "#types/type";
 
 
 
-// STATE & ACTION  
+// STATE & ACTION
 export interface AuthState {
   user?: {
     id: string;
@@ -13,6 +13,7 @@ export interface AuthState {
   };
   token?: string | null;
   status: "iddle" | "is-loading" | "error" | "is-authenticated" | "loggedout";
+  progress?: 35 | 65 | 100 | 0
   error: unknown;
 }
 
@@ -21,34 +22,42 @@ export type AuthAction =
   | { type: "login" | "signup", payload: { token: string, user: AuthState["user"] } }
   | { type: "logout" }
   | { type: "restore-token", payload: { token: string } }
-  | {type : "error", payload:{errorMsg: string}}
-  | {type: "start"}
+  | { type: "error", payload: { errorMsg: string } }
+  | { type: "progress", payload: { amount: 35 | 65 | 100 | 0 } }
+  | { type: "start" }
 
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
-    case "start": 
+    case "start":
       return {
         ...state,
+        progress: 0,
         status: "is-loading"
       }
+
+    case "progress":
+      return {
+        ...state,
+        progress: action.payload.amount
+      }
     case "login":
-      if(!action.payload) return state
+      if (!action.payload) return state
       return {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
         status: "is-authenticated"
       }
-    case "signup": 
-    if(!action.payload) return state
+    case "signup":
+      if (!action.payload) return state
       return {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
         status: "is-authenticated"
       }
-    case "logout": 
+    case "logout":
       return {
         ...state,
         status: "loggedout"
@@ -65,73 +74,84 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         error: action.payload.errorMsg
       }
     default:
-      return state; 
+      return state;
   }
 }
 
 // auth context type
 interface AuthContextType {
-    state: AuthState;
-    dispatch: React.Dispatch<AuthAction>;
-    signup: (dt: FormData) => Promise<void>;
-    login: (dt: LoginRequest) => Promise<void>;
-    logout: () => void;
+  state: AuthState;
+  dispatch: React.Dispatch<AuthAction>;
+  signup: (dt: FormData) => Promise<void>;
+  login: (dt: LoginRequest) => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType|null>(null);
+const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [state, dispatch] = useReducer(authReducer, {user: undefined, error: null, status: 'iddle', token: null});
+  const [state, dispatch] = useReducer(authReducer, { user: undefined, error: null, status: 'iddle', token: null });
 
-    // On mount, restore token from localStorage
-    useEffect(() => {
-        const savedToken = apiClient.getToken();
-        if (savedToken) {
-            dispatch({ type: "restore-token", payload:{ token: savedToken} });
-        }
-    }, []);
+  // On mount, restore token from localStorage
+  useEffect(() => {
+    const savedToken = apiClient.getToken();
+    if (savedToken) {
+      dispatch({ type: "restore-token", payload: { token: savedToken } });
+    }
+  }, []);
 
-    const signup = async (data: FormData) => {
-        dispatch({ type: "start" });
-        try {
-          const res = await apiClient.post<FormData>("/users/signup", data, {headers: {'Content-Type':'multipart/form-data'}});
-          if (res.status >= 400) {
-            dispatch({ type: "error", payload: { errorMsg: `Failed to signup: status ${res.status}`} });
-            return;
-          }
-          const {token, user} = res.data as AuthResponse; 
-          apiClient.setToken(token);
-          dispatch({type:"signup", payload: {token, user:{...user}}});
-        } catch (error) {
-            dispatch({ type: "error", payload:{errorMsg: (error as Error).message} });
-        }
-    };
+  const signup = async (data: FormData) => {
+    dispatch({ type: "start" });
+    dispatch({ type: "progress", payload: { amount: 35 } })
+    try {
+      const res = await apiClient.post<FormData>("/users/signup", data, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (res.status >= 400) {
+        dispatch({ type: "error", payload: { errorMsg: `Failed to signup: status ${res.status}` } });
+        dispatch({ type: "progress", payload: { amount: 100 } })
+        return;
+      }
+      const { token, user } = res.data as AuthResponse;
+      dispatch({ type: "progress", payload: { amount: 65 } })
+      apiClient.setToken(token);
+      dispatch({ type: "signup", payload: { token, user: { ...user } } });
+      dispatch({ type: "progress", payload: { amount: 100 } })
+    } catch (error) {
+      dispatch({ type: "error", payload: { errorMsg: (error as Error).message } });
+    }
+  };
 
-    const login = async (data: LoginRequest) => {
-        dispatch({ type: "start" });
-        try {
-          const res = await apiClient.post<LoginRequest>("/users/login", data);
-          if (res.status >= 400) {
-            dispatch({ type: "error", payload: { errorMsg: `Failed to login: Status ${res.status}` } });
-            return; 
-          }
-          const { token, user } = res.data as AuthResponse; 
-          apiClient.setToken(token);
-          dispatch({ type: "login", payload: { token, user } });
-        } catch (error) {
-            dispatch({ type: "error", payload:{errorMsg:(error as Error).message}});
-            throw error;
-        }
-    };
+  const login = async (data: LoginRequest) => {
+    dispatch({ type: "start" });
+    dispatch({ type: 'progress', payload: { amount: 35 } })
+    try {
+      const res = await apiClient.post<LoginRequest>("/users/login", data);
+      if (res.status >= 400) {
+        dispatch({ type: "error", payload: { errorMsg: `Failed to login: Status ${res.status}` } });
+        dispatch({ type: "progress", payload: { amount: 100 } })
+        return;
+      }
+      dispatch({ type: "progress", payload: { amount: 65 } })
+      const { token, user } = res.data as AuthResponse;
+      apiClient.setToken(token);
+      dispatch({ type: "login", payload: { token, user } });
+      dispatch({ type: "progress", payload: { amount: 100 } })
+    } catch (error) {
+      dispatch({ type: "error", payload: { errorMsg: (error as Error).message } });
+      throw error;
+    }
+  };
 
-    const logout = () => {
-        apiClient.setToken(null);
-        dispatch({ type: "logout" });
-    };
+  const logout = () => {
+    dispatch({ type: "progress", payload: { amount: 35 } })
+    apiClient.setToken(null);
+    dispatch({ type: "progress", payload: { amount: 65 } })
+    dispatch({ type: "logout" });
+    dispatch({ type: "progress", payload: { amount: 100 } })
+  };
 
-    const values: AuthContextType = { state, dispatch,signup,login,logout};
+  const values: AuthContextType = { state, dispatch, signup, login, logout };
 
-   // context
-    return <AuthContext value={values}> { children } </AuthContext>;
+  // context
+  return <AuthContext value={values}> {children} </AuthContext>;
 }
 
 

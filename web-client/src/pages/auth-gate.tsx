@@ -7,6 +7,9 @@ import { Outlet } from "react-router-dom";
 import { useAnimation } from '#components/index';
 import { useDispatch } from "react-redux";
 import { connectSocket } from '#store/slices/lobby-slice';
+import { setToken } from "#store/slices/auth-slice";
+import { Loader } from "#components/ui/loader";
+
 
 export function AuthGate() {
   const { state, login, signup } = useAuth();
@@ -58,12 +61,15 @@ export function AuthGate() {
 
   // Authenticated state handling
   if (state.status === "is-authenticated" && state.token) {
+    // auth should have token 
+    dispatch(setToken(state.token));
     dispatch(connectSocket({ url: `ws://${location.hostname}:8081/ws?token=${encodeURIComponent(state.token)}` }));
     return <Outlet />;
   };
 
   return (
-    <div className="bg-background h-full text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+    <div className=" bg-background h-full text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+      {state.status==="is-loading" && <Loader progress={state.progress}/>}
       <main className="grow flex items-center justify-center relative py-xl px-margin-mobile">
         {/* Floating Badges */}
         <div className="absolute top-20 left-10 sticker-float hidden lg:block">

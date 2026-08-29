@@ -1,8 +1,8 @@
-import { AuthProvider } from "#state/auth-reducer";
+import { AuthProvider } from "#store/auth-reducer";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthGate, NotFound, Home, Lobby, Game, HomeLayout } from '#pages/index';
 import { Provider } from "react-redux";
-import { store } from "#state/store";
+import { store } from "#store/store";
 
 function App() {
   return (
