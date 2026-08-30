@@ -23,9 +23,8 @@ func NewRoomHandler(rs *store.PostGresRoomStore, lg *log.Logger) *RoomHandler {
 	}
 }
 
-func (rh *RoomHandler) HandleCreateRoom( w http.ResponseWriter, r *http.Request,) {
-	var roomBody store.CreateRoom
-	user :=middleware.GetUser(r)
+func (rh *RoomHandler) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUser(r)
 	r.ParseMultipartForm(10 << 20)
 	// parse file
 	iconfile, header, err := r.FormFile("icon")
@@ -43,7 +42,19 @@ func (rh *RoomHandler) HandleCreateRoom( w http.ResponseWriter, r *http.Request,
 		return
 	}
 	data := r.FormValue("data")
-	err = json.NewDecoder(strings.NewReader(data)).Decode(&roomBody)
+	var tempData struct {
+		Name     string `json:"name"`
+		Capacity int    `json:"capacity"`
+		IconBg   string `json:"iconBgClass"`
+		IconText string `json:"iconTextColorClass"`
+	}
+	err = json.NewDecoder(strings.NewReader(data)).Decode(&tempData)
+	roomBody := store.CreateRoom{
+		Name:               tempData.Name,
+		Capacity:           tempData.Capacity,
+		IconBgClass:        tempData.IconBg,
+		IconTextColorClass: tempData.IconText,
+	}
 	if err != nil {
 		rh.Logger.Printf("Error: %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"error": "bad request body"})
@@ -64,9 +75,7 @@ func (rh *RoomHandler) HandleCreateRoom( w http.ResponseWriter, r *http.Request,
 	utils.WriteJSON(w, 201, utils.Envlope{"success": true, "data": room})
 }
 
-
-
-func (rh *RoomHandler) HandleGetRooms( w http.ResponseWriter, r *http.Request,) {
+func (rh *RoomHandler) HandleGetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := rh.RoomStore.GetAllRooms(r.Context())
 	if err != nil {
 		rh.Logger.Printf("Error: %v", err)

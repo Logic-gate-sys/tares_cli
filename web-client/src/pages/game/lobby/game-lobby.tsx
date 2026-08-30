@@ -68,7 +68,7 @@ export function Lobby() {
   const [statusMsg, setStatusMsg] = useState < { title: string, msg: string }>( {title:"", msg:""}); 
 
   useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
+    let progressInterval: number;
     const runProgress = () => {
       if (isLoading) {
         // Start loading sequence
@@ -329,7 +329,6 @@ export function Lobby() {
         {showMsg && <MessageBox title={statusMsg.title} message={(statusMsg.msg).split(".")}  onClose={()=>setShowMsg(false)} onContinue={()=> setShowMsg(false)} />}
         {showLoader && <Loader progress={progress} />}
       </main>
-
     </div>
   );
 }

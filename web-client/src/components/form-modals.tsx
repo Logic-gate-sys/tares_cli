@@ -3,12 +3,12 @@ import { useState } from "react";
 import { ICONBG_CLASS, ICONTEXTCOLOR_CLSS } from '#components/constants';
 
 
-const initData = {
+const getInitData = ()=> ({
     name: '',
-    capacity:0,
-    iconBgClass: ICONBG_CLASS[Math.random() * ICONBG_CLASS.length],
-    iconTextColorClass: ICONTEXTCOLOR_CLSS[Math.random() * ICONTEXTCOLOR_CLSS.length]
-}
+    capacity:2,
+    iconBgClass: ICONBG_CLASS[Math.floor(Math.random() * ICONBG_CLASS.length)],
+    iconTextColorClass: ICONTEXTCOLOR_CLSS[Math.floor(Math.random() * ICONTEXTCOLOR_CLSS.length)]
+})
 
 type ModalProps = {
   onClose: () => void,
@@ -16,12 +16,13 @@ type ModalProps = {
 }
 
 export function CreateRoomModal({ onClose, onSubmit }: ModalProps) {
-  const [data, setData] = useState<RoomCreateType>(initData);
+  const [data, setData] = useState<RoomCreateType>(getInitData);
   const [icon, setIcon] = useState<File | null>();
   
   const handleSubmit = async(e) => {
     e.preventDefault();
     if (!data.name.trim() || !icon) return;
+    console.log("Data: ", data)
     const formData = new FormData();
     formData.append("icon", icon);
     formData.append("data", JSON.stringify(data));
@@ -65,7 +66,7 @@ export function CreateRoomModal({ onClose, onSubmit }: ModalProps) {
                   value={data.capacity}
                   onChange={e => setData(prev => ({ ...prev, capacity: Number(e.target.value) }))}
                 >
-                  <option value={2}>2 Players</option>
+                  <option defaultValue={2} value={2}>2 Players</option>
                   <option value={4}>4 Players</option>
                   <option value={6}>6 Players</option>
                   <option value={8}>8 Players</option>
