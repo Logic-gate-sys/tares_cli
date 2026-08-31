@@ -24,6 +24,7 @@ export type  PlayerAvatar= {
 export type RoomCreateType = {
   name: string;
   capacity: number;
+  icon: string;
   iconBgClass: string;
   iconTextColorClass: string;
 }

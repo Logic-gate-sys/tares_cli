@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
-
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -25,42 +23,26 @@ func NewRoomHandler(rs *store.PostGresRoomStore, lg *log.Logger) *RoomHandler {
 
 func (rh *RoomHandler) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r)
-	r.ParseMultipartForm(10 << 20)
-	// parse file
-	iconfile, header, err := r.FormFile("icon")
-	if err != nil {
-		rh.Logger.Printf("Error: %v", err)
-		utils.WriteJSON(w, 400, utils.Envlope{"error": "bad request"})
-		return
-	}
-	defer iconfile.Close()
-	// upload file
-	url, err := utils.UploadImg(iconfile, "tares", header.Filename)
-	if err != nil {
-		rh.Logger.Printf("Error: %v", err)
-		utils.WriteJSON(w, 400, utils.Envlope{"error": "Failed to upload icon to cloudinary"})
-		return
-	}
-	data := r.FormValue("data")
 	var tempData struct {
 		Name     string `json:"name"`
 		Capacity int    `json:"capacity"`
+		Icon     string `json:"icon"`
 		IconBg   string `json:"iconBgClass"`
 		IconText string `json:"iconTextColorClass"`
 	}
-	err = json.NewDecoder(strings.NewReader(data)).Decode(&tempData)
-	roomBody := store.CreateRoom{
-		Name:               tempData.Name,
-		Capacity:           tempData.Capacity,
-		IconBgClass:        tempData.IconBg,
-		IconTextColorClass: tempData.IconText,
-	}
+	err := json.NewDecoder(r.Body).Decode(&tempData)
 	if err != nil {
 		rh.Logger.Printf("Error: %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"error": "bad request body"})
 		return
 	}
-	roomBody.Icon = url
+	roomBody := store.CreateRoom{
+		Name:               tempData.Name,
+		Capacity:           tempData.Capacity,
+		Icon:               tempData.Icon,
+		IconBgClass:        tempData.IconBg,
+		IconTextColorClass: tempData.IconText,
+	}
 	roomBody.OwnerId = user.Id
 
 	room, err := rh.RoomStore.CreateRoom(&roomBody, r.Context())

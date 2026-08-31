@@ -27,6 +27,7 @@ type UserHandler struct {
 
 // types
 type key string
+
 const traceKey key = key("Create-TraceId")
 
 // constructor
@@ -41,7 +42,7 @@ func NewUserHandler(userStore *store.PostresUserStore, tokenStore *store.Postgre
 // Handles user signup(login), context aware to prevent memory leaks and improve performance
 func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	var usr store.User
-	// parse request as multipart form data 
+	// parse request as multipart form data
 	r.ParseMultipartForm(10 << 20) // 10 * 2^20 bytes= 10MB
 	file, header, err := r.FormFile("avatar")
 	if err != nil {
@@ -57,7 +58,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	defer file.Close()
-	
+
 	data := r.FormValue("data")
 	err = json.NewDecoder(strings.NewReader(data)).Decode(&usr)
 	if err != nil {
@@ -66,7 +67,7 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	fmt.Printf("Avartar url: %s", url)
-	usr.Avatar= url
+	usr.Avatar = url
 	// add context for logging and memory management
 	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
@@ -179,21 +180,11 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			ch <- authResponse{error: errors.New("Invalid credential")}
 			return
 		}
-		// token work
-		_, token, err := uh.userStore.GetUser(ctx, usr.Email)
-		// error could be : contextTimeout, or sql.NoRows
+		// else create new token
+		token, err := uh.tokenStore.CreateUserToken(ctx, user.Id, 15*time.Hour, tokens.AuthScope)
 		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				ch <- authResponse{error: err}
-				fmt.Println("Dagn it: ", err.Error())
-				return
-			}
-			// else create new token
-			token, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
-			if err != nil {
-				ch <- authResponse{error: err}
-				return
-			}
+			ch <- authResponse{error: err}
+			return
 		}
 		// send full data to channel
 		ch <- authResponse{error: nil, user: user, token: token}

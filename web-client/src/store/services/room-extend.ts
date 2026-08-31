@@ -1,11 +1,11 @@
 import { baseApi } from "./api-slice";
-import type { Room } from "#types/entities";
+import type { Room, RoomCreateType } from "#types/entities";
 
 
 
 export const baseExtended = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    createRoom: builder.mutation<Room, FormData>({
+    createRoom: builder.mutation<Room, RoomCreateType>({
       query: (createData) => ({
         url: '/rooms',
         method: 'POST',

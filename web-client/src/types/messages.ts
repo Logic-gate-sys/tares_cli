@@ -3,9 +3,8 @@
 import type { Room } from "./entities"
 
 export type ClientMessage =
-  | {
-    type: `in:lobby`, payload:
-    | { action: 'room:create', value: FormData }
+  | { type: `in:lobby`, payload:
+    | { action: 'room:create', value: Room } // sends message to socket 
     | { action: 'room:join', value: { roomId: string } }
     | { action: 'room:leave', value: { roomId: string } }
   }
@@ -15,8 +14,9 @@ export type ClientMessage =
 export type ServerMessage =
   | {
     type: 'in:lobby', payload:
-    | { which: 'available:rooms', data: unknown, message?: string }
-    | { which: 'rooms:available', data: Room[], message?: string }
+    | { which: 'available:rooms', data: Room[], message?: string }
+    | { which: 'rooms:new', data: Room }
+    | {which: 'rooms:off-line', data: {id: string}}
   }
   | {
     type: 'in:game', payload:

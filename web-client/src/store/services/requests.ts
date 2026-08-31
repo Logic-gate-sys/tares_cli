@@ -9,7 +9,6 @@ class APIClient {
 
   constructor() {
     const baseURL = import.meta.env.VITE_BASE_URL;
-    this.token = localStorage.getItem("token");
     this.client = axios.create({
       baseURL,
       timeout: REQUEST_TIMEOUT, // 10 seconds request timeout
@@ -25,20 +24,10 @@ class APIClient {
   }
 
   setToken(token: string | null) {
-    if (token) {
-      // set to local storage
-      localStorage.setItem("token", token)
-    } else {
-      localStorage.removeItem("token")
-    }
-
+    if (!token) return; 
     this.token = token; 
   }
-  getToken(): string {
-    if (this.token) {
-      return this.token;
-    }
-    this.token = localStorage.getItem("token")
+  getToken(): string | null {
     return this.token;
   }
 

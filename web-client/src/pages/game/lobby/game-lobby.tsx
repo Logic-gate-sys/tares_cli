@@ -66,7 +66,7 @@ export function Lobby() {
   const [showLoader, setShowLoader] = useState(false);
   const [showMsg, setShowMsg] = useState<boolean>(false); 
   const [statusMsg, setStatusMsg] = useState < { title: string, msg: string }>( {title:"", msg:""}); 
-
+  // ARENAS_DATA.push(...availableRooms)
   useEffect(() => {
     let progressInterval: number;
     const runProgress = () => {

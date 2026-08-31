@@ -8,14 +8,14 @@ export function Game() {
   const { socketStatus } = useSelector((state: RootState) => state.lobby)
   if (socketStatus && socketStatus === "connected") {
     return (
-    <>
+      <>
         <Header />
         <div className="m-auto p-20 ">
-         <Outlet /> 
+          <Outlet />
         </div>
-      <BottomNav />
-    </>);
+        <BottomNav />
+      </>);
   }
 
-  return (<><AccessDenied /></> )
+  return (<><AccessDenied /></>)
 }

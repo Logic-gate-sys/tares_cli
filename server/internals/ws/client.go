@@ -71,6 +71,7 @@ func (c *client) writeToClientPump() {
 				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
 			}
 			// flush message to client
+			fmt.Printf("Lobby event sent to client: %s", c.name)
 			writer.Close()
 		}
 

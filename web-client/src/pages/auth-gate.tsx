@@ -40,7 +40,6 @@ export function AuthGate() {
         alert("Passwords do not match");
         return;
       }
-
       const signupData: SignupRequest = {
         email,
         username,
@@ -55,7 +54,6 @@ export function AuthGate() {
         formdata.append("avatar", avatarFile);
         console.log("FILE: ", avatarFile)
       }
-
       await signup(formdata);
     }
   };
