@@ -1,12 +1,15 @@
-import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { CreateRoomModal } from '#components/form-modals';
 import { MessageBox } from '#components/ui/notification';
 import { useSelector } from 'react-redux';
 import type { RootState } from 'src/store/store';
-import { type Room } from '#types/entities';
+import { type Room, type RoomCreateType } from '#types/entities';
 import { useCreateRoomMutation } from '#store/services/room-extend';
 import { Loader } from '#components/ui/loader';
+import { RoomCard } from '#components/game/room';
+import { DeleteModal } from '#components/game/delete-modal';
+import { SettingsModal } from '#components/game/room-setting-modal';
+import { useAuth } from '#store/auth-reducer';
 
 
 
@@ -64,8 +67,11 @@ export function Lobby() {
   const [createRoom, { isLoading, isSuccess, isError, error }] = useCreateRoomMutation();
   const [progress, setProgress] = useState<number>(35);
   const [showLoader, setShowLoader] = useState(false);
-  const [showMsg, setShowMsg] = useState<boolean>(false); 
-  const [statusMsg, setStatusMsg] = useState < { title: string, msg: string }>( {title:"", msg:""}); 
+  const [showMsg, setShowMsg] = useState<boolean>(false);
+  const [statusMsg, setStatusMsg] = useState<{ title: string, msg: string }>({ title: "", msg: "" });
+  const [openRoomSettings, setOpenRoomSettings] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const { state} = useAuth(); 
   // ARENAS_DATA.push(...availableRooms)
   useEffect(() => {
     let progressInterval: number;
@@ -85,18 +91,18 @@ export function Lobby() {
         // Keep the loader on screen just long enough for the user to see "100%"
         setTimeout(() => {
           setShowLoader(false);
-          setOpenModal(false); 
+          setOpenModal(false);
           setProgress(0);
         }, 600);
 
         setShowMsg(true);
-        setStatusMsg(prev => ({...prev, title: "Room creation successful", msg: "Room created"}) ) 
+        setStatusMsg(prev => ({ ...prev, title: "Room creation successful", msg: "Room created" }))
 
       } else if (isError) {
         // Handle failure (optional: show an error state in the loader)
         setShowLoader(false);
         setShowMsg(true)
-        setStatusMsg(prev => ({...prev, title: "Room creation failed", msg: error as string}) ) 
+        setStatusMsg(prev => ({ ...prev, title: "Room creation failed", msg: error as string }))
         setProgress(0);
       }
     }
@@ -105,8 +111,8 @@ export function Lobby() {
     return () => clearInterval(progressInterval);
   }, [isLoading, isSuccess, isError, error]);
 
-  
-  const handleCreateRoom = async (data: FormData) => {
+
+  const handleCreateRoom = async (data: RoomCreateType) => {
     try {
       const res = await createRoom(data).unwrap();
       console.log('ROOM CREATION RES: ', res)
@@ -116,7 +122,7 @@ export function Lobby() {
     }
   }
   return (
-    <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
+    <div className="relative bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -205,7 +211,10 @@ export function Lobby() {
             </div>
 
             <div className="flex flex-col gap-4">
-              {ARENAS_DATA.map((arena) => (
+              {ARENAS_DATA.map((arena, idx) => {
+                return <RoomCard key={idx} data={arena} playerId={state?.user?.id?? "none"}  />
+              })}
+              {/*{ARENAS_DATA.map((arena) => (
                 <div
                   key={arena.id}
                   className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group"
@@ -246,7 +255,7 @@ export function Lobby() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))}*/}
             </div>
           </div>
 
@@ -288,46 +297,13 @@ export function Lobby() {
           </aside>
         </div>
 
-
-
-        {/* Bottom Navigation (Mobile Only) */}
-        <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-sky-blue border-t-4 border-deep-ink shadow-[0px_-4px_0px_0px_#121721] md:hidden">
-          <NavLink
-            to="/home"
-            className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-          >
-            <span className="material-symbols-outlined">home</span>
-            <span className="text-label-bold font-label-bold">Home</span>
-          </NavLink>
-
-          <NavLink
-            to="/lobby"
-            className={({ isActive }) => `flex flex-col items-center justify-center p-2 border-2 border-deep-ink rounded-lg transition-all active:scale-95 ${isActive ? "bg-secondary-container text-deep-ink font-bold" : "text-deep-ink"}`}
-          >
-            <span className="material-symbols-outlined">group</span>
-            <span className="text-label-bold font-label-bold">Lobby</span>
-          </NavLink>
-
-          <NavLink
-            to="/play"
-            className="flex flex-col items-center justify-center bg-action-red text-paper-white border-2 border-deep-ink rounded-lg px-4 py-1 translate-y-[-4px] shadow-[4px_4px_0px_0px_#121721] active:scale-95 transition-transform"
-          >
-            <span className="material-symbols-outlined">videogame_asset</span>
-            <span className="text-label-bold font-label-bold">Play</span>
-          </NavLink>
-
-          <NavLink
-            to="/stats"
-            className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-          >
-            <span className="material-symbols-outlined">trophy</span>
-            <span className="text-label-bold font-label-bold">Stats</span>
-          </NavLink>
-        </nav>
-        {/*--------------- MODAL FORM -------------------------*/}
+        {/*--------------- MODAL FORM -----------------*/}
         {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
-        {showMsg && <MessageBox title={statusMsg.title} message={(statusMsg.msg).split(".")}  onClose={()=>setShowMsg(false)} onContinue={()=> setShowMsg(false)} />}
+        {showMsg   && <MessageBox title={statusMsg.title} message={(statusMsg.msg).split(".")} onClose={() => setShowMsg(false)}
+         onContinue={() => setShowMsg(false)} />}
         {showLoader && <Loader progress={progress} />}
+        {openDelete && <DeleteModal onClose={() => setOpenDelete(false)} onConfirm={() => { console.log("Good") }} />}
+        {openRoomSettings && <SettingsModal onClose={()=> setOpenRoomSettings(false)} onSave={()=> console.log("Saving data")} />}
       </main>
     </div>
   );

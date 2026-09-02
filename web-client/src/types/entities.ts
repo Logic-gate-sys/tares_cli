@@ -1,10 +1,10 @@
 
 
 export type Room = {
-  id?: string;
+  id: string;
   name: string;
   capacity: number; 
-  icon?: string; // icon url return from server 
+  icon: string; // icon url return from server 
   iconBgClass: string;
   iconTextColorClass: string;
   playersText?: string;

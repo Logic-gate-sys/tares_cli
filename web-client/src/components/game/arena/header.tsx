@@ -21,6 +21,9 @@ export const Header =()=> {
           <button className="material-symbols-outlined text-deep-ink hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all p-2 bg-paper-white border-2 border-deep-ink neubrutal-shadow-sm">
             settings
           </button>
+          <button className="material-symbols-outlined text-deep-ink hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all p-2 bg-paper-white border-2 border-deep-ink neubrutal-shadow-sm">
+            logout
+          </button>
         </div>
       </div>
     </header>
