@@ -1,71 +1,133 @@
-import { BottomNav } from '#components/game/arena';
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { CreateRoomModal } from '#components/form-modals';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from 'src/store/store';
+import { type Room, type RoomCreateType } from '#types/entities';
+import {useCreateRoomMutation, useDeleteRoomMutation, useUpdateRoomMutation} from '#store/services/room-extend';
+import { pushToLobby } from '#store/slices/lobby-slice'
+import { RoomCard } from '#components/game/room';
+import { DeleteModal } from '#components/game/delete-modal';
+import { SettingsModal } from '#components/game/room-setting-modal';
+import { useAuth } from '#store/auth-reducer';
+import { useUI } from '#context/ui-context';
+import { Loader } from '#components/ui/loader';
 
-interface PlayerAvatar {
-  src: string;
-  alt: string;
-  bgClass: string;
-}
 
-interface Arena {
-  id: string;
-  name: string;
-  icon: string;
-  iconBgClass: string;
-  iconTextColorClass: string;
-  playersText: string;
-  timeLeftText: string;
-  avatars: PlayerAvatar[];
-  extraPlayersCount?: number;
-}
 
-const ARENAS_DATA: Arena[] = [
-  {
-    id: 'cyberpunk-city',
-    name: 'CYBERPUNK CITY',
-    icon: 'sports_esports',
-    iconBgClass: 'bg-primary-container',
-    iconTextColorClass: 'text-paper-white',
-    playersText: '5/8 Players',
-    timeLeftText: '02:45 Left',
-    avatars: [
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsVRk3dArpX4pYLssMhALAvOfYy80K900dqMN3thc1H4ULtZxJgdRQxhh8I_hjegJkZUqHNV4c80NeeqN9Y76ws3G4nWUpdXFeW4JiR5BYEZ0EGonA9Ot_vKJkQ6mSALOMVeQKElxXNwe2wSgwNp_euBs9U1sDQP0Ocpq-uWTDZoau449QwkY718hBpV62rM9LcCaR2bPosPZAj5lxVz9UaI3yRrZ9EustfCi49z2FQmDN63wATtIAJ6wrwEP6RH_5ujQdp77bkAR6', alt: 'Cyberpunk player avatar', bgClass: 'bg-sky-blue' },
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxhP-_1o3-uU8VwUvUOWEMZL5olbaT_PWiyqh02W7qcXD9qXQOkajEdaPVOfAlF_EgParp5a7-KwPc0C2YKih0SdIet1s7xhU6PNpMBgZWeZRAHuK66JWHjygqiHUlAqduWG3X9uic5RcTvVJ6ObKXKJO9JiX9MyS6NmfEXztAhXUGicxeamxkK9OD5PEuQuGQJqT0QSaHFrmeoBOgbEWR7dQqqVKocx3kr4mePrPeWbUHo_QAc0HXw_GXfmO1NebTE9Fo4YD8W3D3', alt: 'Pro gamer avatar', bgClass: 'bg-primary-fixed' },
-    ],
-    extraPlayersCount: 3,
-  },
-  {
-    id: 'hacker-zenith',
-    name: 'HACKER ZENITH',
-    icon: 'terminal',
-    iconBgClass: 'bg-secondary-container',
-    iconTextColorClass: 'text-deep-ink',
-    playersText: '2/4 Players',
-    timeLeftText: 'Starting Soon',
-    avatars: [
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCURNcvzYRg2m1fZfp1lU0x6fhDS-iMC4U25W04dxetpXSGYaCoOp-nIQRiYIpsX1CyBdrpFY6nXimW80xLs8SL0ORxj9clrSDKJA-E1ebTyob7SkA6edvrNg8X0FAu8pQeN6jOYVy8houupFCKY0rb3wS4jOtPZpb3DJiw2ezjsQogXXzCVzXtVHNH_MRdmo0LShdMG_J_tBZdReVB7Zi9ewMIkIH8wji1zd6trhhLO8jEcVCXH_5RNC-l4PlzijKEjgXchXFz_H5e', alt: 'Futuristic hacker avatar', bgClass: 'bg-tertiary-fixed' },
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChySjq5xRvuYlJnMD-UlBba6HRfKUz5LfwzV-njsA0iqaDY5WVzfuVTXzoh-5FXkodumKjNihxqfWqOGYepRgJytdxvtWFb0RlDXcDtDoBDBmv5UJeoHBUtgUexrtR8U1vHR07wOLJ0ZOz79uzLX0HiUOwWXgrpb4V7W7hm4HENliAmO9IszFr0lXPDJw_EAyDFvCJR4ZhkrcUOZ_0Dthd96nBytUzQl5Av9cdcnbfTPPnm9qBIvQItalJOgN1hfGSEBIEbBrkF4L1', alt: 'Competitive player avatar', bgClass: 'bg-sky-blue' },
-    ],
-  },
-  {
-    id: 'speed-runners',
-    name: 'SPEED RUNNERS',
-    icon: 'bolt',
-    iconBgClass: 'bg-tertiary-container',
-    iconTextColorClass: 'text-paper-white',
-    playersText: '7/10 Players',
-    timeLeftText: '00:52 Left',
-    avatars: [
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYndfhK6Cd97AmI11RP_vtulSUCLq7VoXmSpo-7JaQtTI9Ssdj0YKC_4AMa_JG12g8XiX2ofjy3Zle3VedQBkSSlC24tLHy6sB4lGPUiKhk2PetVkRLtllLOc5xcHt3l9aNruCvpts-NRl289wR6MEHRYhtOnD6ppcJmKbS3nqIX4gqKCr8uRzTtIREg8hvXRh9QBDGrEowlxkz9kwjDgW57ZAHCzt_FbIR0vh676d5anJGD-SYCRct0TEOtO3Jx7Z5PNYUB_5q48U', alt: 'Street culture avatar', bgClass: 'bg-primary-fixed' },
-      { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfT3NDy0L0qBHLIQAWeKzK2deBJcPgqVa3_7BGkK5xKpiUbhTxfUgrKNP4xz_k_fycX8-eBYP-Qcd-Xy7UL3Hz0OZT_2ITRSBf59F6ainikF_hQp00Ghhje6aF099Gkr1snFr7fsb_vlTmb7l3yqBvatCHSCyFfjdUw_TMEpXWHykmS-0mMsX1RawE2ID3uCi03Vt3M_QF2Y4gFQa_JSDmaRE_YCZppuFRwIq-MAkyIThgh_2VKccukdj6Byhsqb4RXZ22G4UAVsoJ', alt: 'Female gamer avatar', bgClass: 'bg-secondary-fixed' },
-    ],
-    extraPlayersCount: 5,
-  },
-];
 
-export  function Lobby() {
+// const ARENAS_DATA: Room[] = [
+//   {
+//     id: '01',
+//     name: 'CYBERPUNK CITY',
+//     capacity: 8,
+//     icon: 'sports_esports',
+//     status: 'online',
+//     iconBgClass: 'bg-primary-container',
+//     iconTextColorClass: 'text-paper-white',
+//     playersText: '5/8 Players',
+//     timeLeftText: '02:45 Left',
+//     avatars: [
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsVRk3dArpX4pYLssMhALAvOfYy80K900dqMN3thc1H4ULtZxJgdRQxhh8I_hjegJkZUqHNV4c80NeeqN9Y76ws3G4nWUpdXFeW4JiR5BYEZ0EGonA9Ot_vKJkQ6mSALOMVeQKElxXNwe2wSgwNp_euBs9U1sDQP0Ocpq-uWTDZoau449QwkY718hBpV62rM9LcCaR2bPosPZAj5lxVz9UaI3yRrZ9EustfCi49z2FQmDN63wATtIAJ6wrwEP6RH_5ujQdp77bkAR6', alt: 'Cyberpunk player avatar', bgClass: 'bg-sky-blue' },
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxhP-_1o3-uU8VwUvUOWEMZL5olbaT_PWiyqh02W7qcXD9qXQOkajEdaPVOfAlF_EgParp5a7-KwPc0C2YKih0SdIet1s7xhU6PNpMBgZWeZRAHuK66JWHjygqiHUlAqduWG3X9uic5RcTvVJ6ObKXKJO9JiX9MyS6NmfEXztAhXUGicxeamxkK9OD5PEuQuGQJqT0QSaHFrmeoBOgbEWR7dQqqVKocx3kr4mePrPeWbUHo_QAc0HXw_GXfmO1NebTE9Fo4YD8W3D3', alt: 'Pro gamer avatar', bgClass: 'bg-primary-fixed' },
+//     ],
+//     extraPlayersCount: 3,
+//   },
+//   {
+//     id: '02',
+//     name: 'HACKER ZENITH',
+//     capacity: 8,
+//     icon: 'terminal',
+//     status:'online',
+//     iconBgClass: 'bg-secondary-container',
+//     iconTextColorClass: 'text-deep-ink',
+//     playersText: '2/8 Players',
+//     timeLeftText: 'Starting Soon',
+//     avatars: [
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCURNcvzYRg2m1fZfp1lU0x6fhDS-iMC4U25W04dxetpXSGYaCoOp-nIQRiYIpsX1CyBdrpFY6nXimW80xLs8SL0ORxj9clrSDKJA-E1ebTyob7SkA6edvrNg8X0FAu8pQeN6jOYVy8houupFCKY0rb3wS4jOtPZpb3DJiw2ezjsQogXXzCVzXtVHNH_MRdmo0LShdMG_J_tBZdReVB7Zi9ewMIkIH8wji1zd6trhhLO8jEcVCXH_5RNC-l4PlzijKEjgXchXFz_H5e', alt: 'Futuristic hacker avatar', bgClass: 'bg-tertiary-fixed' },
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChySjq5xRvuYlJnMD-UlBba6HRfKUz5LfwzV-njsA0iqaDY5WVzfuVTXzoh-5FXkodumKjNihxqfWqOGYepRgJytdxvtWFb0RlDXcDtDoBDBmv5UJeoHBUtgUexrtR8U1vHR07wOLJ0ZOz79uzLX0HiUOwWXgrpb4V7W7hm4HENliAmO9IszFr0lXPDJw_EAyDFvCJR4ZhkrcUOZ_0Dthd96nBytUzQl5Av9cdcnbfTPPnm9qBIvQItalJOgN1hfGSEBIEbBrkF4L1', alt: 'Competitive player avatar', bgClass: 'bg-sky-blue' },
+//     ],
+//   },
+//   {
+//     id: '03',
+//     name: 'SPEED RUNNERS',
+//     capacity: 8,
+//     icon: 'bolt',
+//     status:'offline',
+//     iconBgClass: 'bg-tertiary-container',
+//     iconTextColorClass: 'text-paper-white',
+//     playersText: '7/10 Players',
+//     timeLeftText: '00:52 Left',
+//     avatars: [
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYndfhK6Cd97AmI11RP_vtulSUCLq7VoXmSpo-7JaQtTI9Ssdj0YKC_4AMa_JG12g8XiX2ofjy3Zle3VedQBkSSlC24tLHy6sB4lGPUiKhk2PetVkRLtllLOc5xcHt3l9aNruCvpts-NRl289wR6MEHRYhtOnD6ppcJmKbS3nqIX4gqKCr8uRzTtIREg8hvXRh9QBDGrEowlxkz9kwjDgW57ZAHCzt_FbIR0vh676d5anJGD-SYCRct0TEOtO3Jx7Z5PNYUB_5q48U', alt: 'Street culture avatar', bgClass: 'bg-primary-fixed' },
+//       { src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfT3NDy0L0qBHLIQAWeKzK2deBJcPgqVa3_7BGkK5xKpiUbhTxfUgrKNP4xz_k_fycX8-eBYP-Qcd-Xy7UL3Hz0OZT_2ITRSBf59F6ainikF_hQp00Ghhje6aF099Gkr1snFr7fsb_vlTmb7l3yqBvatCHSCyFfjdUw_TMEpXWHykmS-0mMsX1RawE2ID3uCi03Vt3M_QF2Y4gFQa_JSDmaRE_YCZppuFRwIq-MAkyIThgh_2VKccukdj6Byhsqb4RXZ22G4UAVsoJ', alt: 'Female gamer avatar', bgClass: 'bg-secondary-fixed' },
+//     ],
+//     extraPlayersCount: 5,
+//   },
+// ];
+
+export function Lobby() {
+  const dispatch = useDispatch();
+  const { availableRooms } = useSelector((state: RootState) => state.lobby)
+  const { state } = useAuth();
+  const { showNotice} = useUI();
+
+
+  // RTK QUERY & MUTATION FLAGS
+  const [createRoom, { isLoading: isCreating}] = useCreateRoomMutation();
+  const [deleteRoom, { isLoading: isDeleting }] = useDeleteRoomMutation();
+  const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
+
+  // MODALS & SELECTION STATES
+  const [openRoomSettings, setOpenRoomSettings] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [selectedRooId, setSelectedRoomId] = useState<string>();
+  const [openModal, setOpenModal] = useState<boolean>(false);
+
+
+  const selectedRoom = selectedRooId? availableRooms?.find((rm)=> rm.id ===selectedRooId):null
+  const isBusy = isCreating || isDeleting ||isUpdating;
+
+
+  // ASYNC HANDLERS
+  const handleCreateRoom = async (data: RoomCreateType) => {
+    try {
+      await createRoom(data).unwrap();
+      setOpenModal(false)
+      dispatch(pushToLobby({type:'in:lobby', payload:{action:'room:create', value: {name: data.name}}}))
+      showNotice("Success", "Room created successfully")
+    } catch (err: unknown) {
+      console.log("error: ", err)
+      showNotice("Error !", "Failed to create room ")
+    }
+  }
+
+  const handleUpdateRoom= async (data: Partial<Room>) => {
+    try {
+      await updateRoom(data).unwrap();
+      setOpenRoomSettings(false);
+      dispatch(pushToLobby({ type: 'in:lobby', payload: { action: 'room:update', value: { name: data.name } } }));
+      showNotice("Success", "Room updated successfully")
+    } catch (err: unknown) {
+      console.log("error: ", err)
+      showNotice("Error !", "Failed to update room ")
+    }
+  }
+
+  // deleting a room
+  const handleDeleteRoom = async () => {
+    if (!selectedRooId) return;
+    try {
+      await deleteRoom({ id: selectedRooId }).unwrap();
+      showNotice("Success", "Room deleted successfully");
+      setOpenDelete(false)
+    } catch (err: unknown) {
+      console.error("Failed to delete room: ", err)
+      showNotice("Error!", "Failed to delete room ");
+    }
+  }
+
   return (
-    <div className="bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
+    <div className="relative bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -122,7 +184,7 @@ export  function Lobby() {
               <h2 className="text-display-lg-mobile md:text-display-lg font-display-lg text-deep-ink mb-4">
                 READY TO <span className="text-action-red">SCRAMBLE?</span>
               </h2>
-              <p className="text-body-lg font-body-lg text-deep-ink max-w-xl">
+              <p className="text-body-lg font-body-lg text-deep-ink max-w-2xl">
                 Jump into the fastest-growing word arena. Beat the clock, outsmart your rivals, and climb the global ranks.
               </p>
             </div>
@@ -131,7 +193,8 @@ export  function Lobby() {
                 QUICK JOIN
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>bolt</span>
               </button>
-              <button className="bg-paper-white text-deep-ink px-12 py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-[1.02] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4">
+              <button className="bg-paper-white text-deep-ink px-12 py-6 border-4 border-deep-ink neubrutalism-shadow text-headline-md font-headline-md hover:scale-[1.02] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4"
+                onClick={() => setOpenModal(true)}>
                 CREATE
                 <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>add_circle</span>
               </button>
@@ -153,9 +216,17 @@ export  function Lobby() {
             </div>
 
             <div className="flex flex-col gap-4">
-              {ARENAS_DATA.map((arena) => (
-                <div 
-                  key={arena.id} 
+              {availableRooms.map((arena, idx) => {
+                return <div key={idx} onClick={() => setSelectedRoomId(arena.id)}>
+                  <RoomCard  data={arena} playerId={state?.user?.id ?? "none"}
+                    onOpenDelete={() => setOpenDelete(true)}
+                    onOpenSettings={() => setOpenRoomSettings(true)}
+                  />
+                </div>
+              })}
+              {/*{ARENAS_DATA.map((arena) => (
+                <div
+                  key={arena.id}
                   className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4">
@@ -166,7 +237,7 @@ export  function Lobby() {
                       <div>
                         <h4 className="text-headline-md font-headline-md text-deep-ink">{arena.name}</h4>
                         <p className="text-body-md font-body-md text-secondary flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm">groups</span> 
+                          <span className="material-symbols-outlined text-sm">groups</span>
                           {arena.playersText} • {arena.timeLeftText}
                         </p>
                       </div>
@@ -175,11 +246,11 @@ export  function Lobby() {
                     <div className="flex items-center gap-4 w-full md:w-auto">
                       <div className="flex -space-x-4">
                         {arena.avatars.map((avatar, idx) => (
-                          <img 
+                          <img
                             key={idx}
-                            className={`w-10 h-10 rounded-full border-2 border-deep-ink ${avatar.bgClass}`} 
-                            alt={avatar.alt} 
-                            src={avatar.src} 
+                            className={`w-10 h-10 rounded-full border-2 border-deep-ink ${avatar.bgClass}`}
+                            alt={avatar.alt}
+                            src={avatar.src}
                           />
                         ))}
                         {arena.extraPlayersCount && (
@@ -194,7 +265,7 @@ export  function Lobby() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))}*/}
             </div>
           </div>
 
@@ -235,42 +306,13 @@ export  function Lobby() {
             </div>
           </aside>
         </div>
-      </main>
 
-      {/* Bottom Navigation (Mobile Only) */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe bg-sky-blue border-t-4 border-deep-ink shadow-[0px_-4px_0px_0px_#121721] md:hidden">
-        <NavLink 
-          to="/home" 
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">home</span>
-          <span className="text-label-bold font-label-bold">Home</span>
-        </NavLink>
-        
-        <NavLink 
-          to="/lobby" 
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 border-2 border-deep-ink rounded-lg transition-all active:scale-95 ${isActive ? "bg-secondary-container text-deep-ink font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">group</span>
-          <span className="text-label-bold font-label-bold">Lobby</span>
-        </NavLink>
-        
-        <NavLink 
-          to="/play" 
-          className="flex flex-col items-center justify-center bg-action-red text-paper-white border-2 border-deep-ink rounded-lg px-4 py-1 translate-y-[-4px] shadow-[4px_4px_0px_0px_#121721] active:scale-95 transition-transform"
-        >
-          <span className="material-symbols-outlined">videogame_asset</span>
-          <span className="text-label-bold font-label-bold">Play</span>
-        </NavLink>
-        
-        <NavLink 
-          to="/stats" 
-          className={({ isActive }) => `flex flex-col items-center justify-center p-2 transition-all active:scale-95 ${isActive ? "text-action-red font-bold" : "text-deep-ink"}`}
-        >
-          <span className="material-symbols-outlined">trophy</span>
-          <span className="text-label-bold font-label-bold">Stats</span>
-        </NavLink>
-          </nav>
+        <Loader isLoading={isBusy} />
+        {/*--------------- MODAL FORM -----------------*/}
+        {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
+        {openDelete && <DeleteModal title={selectedRoom?.name??"" } onClose={() => setOpenDelete(false)} onConfirm={handleDeleteRoom} />}
+        {openRoomSettings && <SettingsModal room={selectedRoom} onClose={() => setOpenRoomSettings(false)} onSave={handleUpdateRoom} />}
+      </main>
     </div>
   );
 }

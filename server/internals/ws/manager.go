@@ -1,13 +1,15 @@
 package ws
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
+	"github.com/logic-gate-sys/tares-cli/internals/store"
 )
 
 type LobbyAction struct {
@@ -17,8 +19,8 @@ type LobbyAction struct {
 
 type roomManager struct {
 	sync.RWMutex
-	rooms        map[string]*Room // map of all rooms in this manager
-	lobbyClients map[*client]bool // all clients with no rooms yet
+	rooms        map[string]*PlayerRoom // map of all rooms in this manager
+	lobbyClients map[*client]bool       // all clients with no rooms yet
 	lobbyLeave   chan *client
 	lobbyJoin    chan *client // client with no room joins room manaer through this
 	lobbyInbound chan LobbyAction
@@ -26,7 +28,7 @@ type roomManager struct {
 
 func NewRoomManager() *roomManager {
 	return &roomManager{
-		rooms:        make(map[string]*Room),
+		rooms:        make(map[string]*PlayerRoom),
 		lobbyClients: make(map[*client]bool),
 		lobbyJoin:    make(chan *client),
 		lobbyLeave:   make(chan *client),
@@ -34,92 +36,124 @@ func NewRoomManager() *roomManager {
 	}
 }
 
-// manages lobby state(creating, joining, leaving, discovering rooms)
+// broadcastToLobby is a helper method to send the current room list to everyone in the lobby
+// func (rm *roomManager) broadcastToLobby() {
+// 	var publicRooms []PublicUserRoom
+// 	for _, room := range rm.rooms {
+// 		pbcRoom := NewPublicRoom(room)
+// 		publicRooms = append(publicRooms, pbcRoom)
+// 	}
+
+// 	// Loop through every client waiting in the lobby and push the update
+// 	for client := range rm.lobbyClients {
+// 		// Non-blocking channel send pattern to prevent one slow client from hanging the entire lobby loop
+// 		select {
+// 		case client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+// 			Data:    publicRooms,
+// 			Message: "Someone create a new room",
+// 		}:
+// 		default:
+// 			// If a client's channel buffer is full, skip them so the loop keeps moving smoothly
+// 			log.Printf("Skipping broadcast for client %s: buffer full", client.name)
+// 		}
+// 	}
+// }
+
+// manages lobby state(joining, leaving, discovering rooms)
 func (rm *roomManager) Run() {
-	// run loop
+	//initialise db outside http 
+	db, err := store.Open()
+	if err != nil {
+		return
+	}
+	rmStore := store.NewPostgresRoomStore(db)
+	// the loop 
 	for {
 		select {
 		// when client joins lobby channel
 		case client := <-rm.lobbyJoin:
 			rm.lobbyClients[client] = true
+			// also search for all rooms in lobby give client results
+			ctx := context.Background()
+			rooms, err := rmStore.GetAllRooms(ctx)
+			if err != nil {
+				return
+			}
+			client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+				Which:   events.AvailableRooms,
+				Data:    rooms,
+				Message: "Current online rooms available",
+			}
 			log.Printf("Client: %s joined lobby", client.name)
-
 		// when client leaves lobby
 		case client := <-rm.lobbyLeave:
 			delete(rm.lobbyClients, client)
 			close(client.inLobbyToClientEvent)
 			log.Printf("Client: %s left lobby", client.name)
-
+			
 		// if an event is sent to lobby
 		case action := <-rm.lobbyInbound:
 			switch action.Action.Action {
-			case events.CreateRoom:
-				// create room with capacity and name
-				name := action.Action.Value["name"].(string)
-				capacity, ok := action.Action.Value["capacity"].(float64)
-				if !ok {
-					fmt.Println("Invalid capacity values")
-					continue
-				}
-				room := NewRoom(WithCapacity(int(capacity)), WithName(name))
-				rm.Lock()
-				rm.rooms[room.Id] = room
-				rm.Unlock()
-				// leave lobby and join room
-				go room.Run()
-				room.join <- action.Client
+				case  events.CreateRoom: {
+					var payload struct {
+						Name string `json:"name"`
+					}
+					err := json.Unmarshal(action.Action.Value, &payload)
+					// if room id is not valid 
+					if payload.Name ==""{
+						break;
+					}
+				 ctx := context.Background()
+				 room,err := rmStore.GetRoomByName(ctx, payload.Name)
+				 if err !=nil{
+						log.Println("Error(wss): ",  err.Error())
+						break  
+					}
 
+				 log.Printf("Room to clients: %v", room)
+				 for client,_ := range rm.lobbyClients{
+						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+							Which: events.NewRoom,
+							Data: room,
+							Message: "New room created",
+						}
+					}
+				}
+				
+				// when a user updates their room; 
+				case  events.UpdateRoom: {
+					var payload struct {
+						Name string `json:"name"`
+					}
+					err := json.Unmarshal(action.Action.Value, &payload)
+					// if room id is not valid 
+					if payload.Name ==""{
+						break;
+					}
+				 ctx := context.Background()
+				 room,err := rmStore.GetRoomByName(ctx, payload.Name)
+				 if err !=nil{
+						log.Println("Error(wss): ",  err.Error())
+						break  
+					}
+
+				 log.Printf("(updated)Room to clients: %v", room)
+				 for client,_ := range rm.lobbyClients{
+						  client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+							Which: events.UpdatedRoom,
+							Data: room,
+							Message: "Updated room",
+						}
+					}
+				}
+				
 			// incase user wants to join an available room
-			case events.JoinRoom:
-				roomId := action.Action.Value["roomId"].(string)
-				rm.Lock()
-				room, exists := rm.rooms[roomId]
-				rm.Unlock()
-				// if room exists and is not full
-				if exists && room.Capacity > len(room.Clients) {
-					//move client from lobby to room
-					room.join <- action.Client
-					action.Client.room = room
+				case events.JoinRoom:
 
-				} else if room.Capacity == len(room.Clients) {
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-						Message: "Room is full, look for another room",
-					}
-				} else {
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-						Message: "No room with such id: " + roomId,
-					}
-				}
-
-				// to view all available rooms
-			case events.GetRooms:
-				allRooms := []*Room{}
-				idx := 0
-				for _, room := range rm.rooms {
-					// only the fields relevant to user
-					toAdd := Room{
-						Id:       room.Id,
-						Name:     room.Name,
-						Capacity: room.Capacity,
-					}
-					// room has a field that contains mutex so must be appended by reference to  preserve values
-					allRooms = append(allRooms, &toAdd)
-					idx++
-				}
-				if len(allRooms) == 0 {
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{Type: "Get Rooms", Message: "No available rooms"}
-				} else {
-					// push all rooms to client
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-						Type:    "Get Rooms",
-						Message: "Available rooms",
-						Data:    allRooms,
-					}
-				}
+					break
 			}
 		}
 	}
-
 }
 
 var (
@@ -142,17 +176,17 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 		panic("Socket upgrade failed ")
 	}
 	// Create client from authenticated user
-	clt := &client{
-		name:                   user.Username,
-		socket:                 socket,
+	client := &client{
+		name:                 user.Username,
+		socket:               socket,
 		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast),
-		manager:                rm,
+		manager:              rm,
 	}
 	// run room & put client on lobbyJoin chan
 	go rm.Run()
-	rm.lobbyJoin <- clt
+	rm.lobbyJoin <- client
 
 	// start client read & write pumps
-	go clt.writeToClientPump()
-	go clt.readFromClientPump()
+	go client.writeToClientPump()
+	go client.readFromClientPump()
 }

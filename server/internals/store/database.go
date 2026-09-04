@@ -2,16 +2,23 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
-   _ "github.com/jackc/pgx/v4/stdlib"
 )
 
 
 
 func Open()(*sql.DB, error){
-	connectionString :="host=localhost user=logic dbname=tares_db port=5433 password=logicgate sslmode=disable"
+	_=godotenv.Load()
+	connectionString := os.Getenv("DATABASE_URL")
+	if connectionString ==""{
+		return nil, errors.New("Invalid DATABASE_URL")
+	}
 	db, err := sql.Open("pgx", connectionString)
 	if err !=nil{
 		return nil, err

@@ -5,7 +5,7 @@ help:
 	@echo ""
 	@echo "Commands:"
 	@echo "  make install        Install dependencies for server and client"
-	@echo "  make dev            Run server and client in parallel (requires tmux)"
+	@echo "  make dev-mode       Run db, server and client in parallel (requires concurrently)"
 	@echo "  make dev-server     Run only the Go server"
 	@echo "  make dev-client     Run only the React client"
 	@echo "  make build          Build server and client for production"
@@ -24,22 +24,27 @@ install:
 	@echo "📦 Installing Node dependencies..."
 	cd web-client && npm install
 
+dev-mode:
+	cd web-client && npm run dev 
 # run client & server dev scripts
 dev-server:
 	@echo "🎮 Starting Go server..."
 	cd server && go run main.go
-
+dev-live-server:
+	@echo "Starting live go server"
+	cd server && air 
+	
 dev-client:
 	@echo "⚛️  Starting React dev server..."
 	cd web-client && npm run dev -- --force
 
 # Build for production
 build: build-server build-client
-	@echo "✅ Build complete. Server binary at ./server && Client bundle at ./web-client/dist"
+	@echo "Build complete. Server binary at ./server && Client bundle at ./web-client/dist"
 pg-connect:
 	docker exec -it taresDB psql -U logic -d tares_db 
 start-pg:
-	docker compose up
+	docker compose up 
 # needs refinement
 build-server:
 	@echo "🔨 Building Go server..."

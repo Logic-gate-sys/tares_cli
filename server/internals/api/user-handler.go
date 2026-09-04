@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/logic-gate-sys/tares-cli/internals/store"
 	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
@@ -43,13 +42,32 @@ func NewUserHandler(userStore *store.PostresUserStore, tokenStore *store.Postgre
 // Handles user signup(login), context aware to prevent memory leaks and improve performance
 func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	var usr store.User
-	err := json.NewDecoder(r.Body).Decode(&usr)
+	// parse request as multipart form data
+	r.ParseMultipartForm(10 << 20) // 10 * 2^20 bytes= 10MB
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		uh.Logger.Printf("Failed to pass formfile: %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"Failed to pass formfile": "Not multi-part request body"})
+		return
+	}
+	// upload to cloudinary
+	url, err := utils.UploadImg(file, "tares", header.Filename)
+	if err != nil {
+		uh.Logger.Printf("Failed to upload image %v", err)
+		utils.WriteJSON(w, 400, utils.Envlope{"Failed to upload image": err.Error()})
+		return
+	}
+	defer file.Close()
+
+	data := r.FormValue("data")
+	err = json.NewDecoder(strings.NewReader(data)).Decode(&usr)
 	if err != nil {
 		uh.Logger.Printf("Invalid data provided: %v", usr)
 		utils.WriteJSON(w, 400, utils.Envlope{"Bad request": "Bad request"})
 		return
 	}
-	fmt.Printf("Password: %s", *usr.Password.PlainText)
+	fmt.Printf("Avartar url: %s", url)
+	usr.Avatar = url
 	// add context for logging and memory management
 	ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 	defer cancel()
@@ -109,12 +127,12 @@ func (uh *UserHandler) HandleUserSignup(w http.ResponseWriter, r *http.Request) 
 		utils.WriteJSON(w, http.StatusRequestTimeout, utils.Envlope{"error": "Request timedout"})
 		return
 	}
-
 }
 
 func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) {
 	//decode user input
 	var usr store.User
+
 	if err := json.NewDecoder(r.Body).Decode(&usr); err != nil {
 		uh.Logger.Printf("Invalid data provided: %v", err)
 		utils.WriteJSON(w, 400, utils.Envlope{"error": "Bad request"})
@@ -136,6 +154,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		return
 	default:
 	}
+
 	// response to channel
 	type authResponse struct {
 		error error
@@ -147,10 +166,8 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 
 	go func() {
 		user, err := uh.userStore.GetUserByEmail(ctx, usr.Email)
-		// error could be : contextTimeout, or sql.NoRows
 		if err != nil {
 			ch <- authResponse{error: err}
-			fmt.Println("User not found!")
 			return
 		}
 		// compare their password
@@ -163,27 +180,14 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 			ch <- authResponse{error: errors.New("Invalid credential")}
 			return
 		}
-		// get user token
-		userToken, err := uh.tokenStore.GetUserToken(ctx, user.Id)
-		//issue with token
+		// else create new token
+		token, err := uh.tokenStore.CreateUserToken(ctx, user.Id, 15*time.Hour, tokens.AuthScope)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				uh.Logger.Printf("User has no auth tokens currently in their name: creating one")
-			} else {
-				ch <- authResponse{error: err}
-			}
-
-		}
-		// if plaintext or token is empty, it means user needs a new token
-		if userToken == nil {
-			userToken, err = uh.tokenStore.CreateUserToken(user.Id, 24*time.Hour, tokens.AuthScope)
-			if err != nil {
-				ch <- authResponse{error: err}
-				return
-			}
+			ch <- authResponse{error: err}
+			return
 		}
 		// send full data to channel
-		ch <- authResponse{error: nil, user: user, token: userToken}
+		ch <- authResponse{error: nil, user: user, token: token}
 	}()
 
 	// find  validate user exists
@@ -203,7 +207,7 @@ func (uh *UserHandler) HandleUserSignin(w http.ResponseWriter, r *http.Request) 
 		}
 		// else everything is successful
 		publicUsr := store.NewUserPublicResponse(res.user)
-		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr, "token": res.token.Hash})
+		utils.WriteJSON(w, http.StatusOK, utils.Envlope{"user": publicUsr, "token": res.token.PlainText})
 		uh.Logger.Printf("User logged in -> [traceId = %s] :%v", traceID, res)
 		return
 

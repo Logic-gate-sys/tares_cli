@@ -2,12 +2,11 @@ package middleware
 
 import (
 	"context"
-	"encoding/base64"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/logic-gate-sys/tares-cli/internals/store"
-	"github.com/logic-gate-sys/tares-cli/internals/tokens"
 	"github.com/logic-gate-sys/tares-cli/internals/utils"
 )
 
@@ -33,48 +32,6 @@ func GetUser(r *http.Request) *store.User {
 	return user
 }
 
-// func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
-// 		w.Header().Add("Vary", "Authorization")
-// 		authHeader := r.Header.Get("Authorization")
-// 		tokenStr, err := hex.DecodeString(r.URL.Query().Get("token"))
-// 		// is auth header is sent
-// 		if authHeader !=""{
-// 			r = SetUser(r, store.AnonymousUser)
-// 			next.ServeHTTP(w, r)
-// 			return
-// 		}
-// 		// else
-// 		parts := strings.Split(authHeader, " ")
-// 		if len(parts) !=2 || parts[0] != "Bearer" {
-// 			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token"})
-// 			return
-// 		}
-// 		// create timeout context with 2 seconds max
-// 		ctx, cancel := context.WithTimeout(r.Context(), 2000 *time.Millisecond) // 2 seconds
-// 		defer cancel()
-
-// 		// get user token
-// 		if token, err := hex.DecodeString(parts[1]);
-// 			err !=nil{
-// 				utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"error":"Bad token"})
-// 				return
-// 			}
-// 		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, token[:])
-// 		if err !=nil{
-// 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error":"Something went wrong"})
-// 			return
-// 		}
-// 		if user == nil{
-// 			utils.WriteJSON(w, http.StatusNotFound, utils.Envlope{"error":"User not found"})
-// 			return
-// 		}
-// 		// set user
-// 		r = SetUser(r, user)
-//     next.ServeHTTP(w, r)
-// 	})
-// }
-
 func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization")
@@ -87,7 +44,7 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 				utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"message": "Invalid token format"})
 				return
 			}
-			tokenStr = parts[1]
+			tokenStr = parts[1] // encoded string
 		} else {
 			// Fallback: Check query string parameters for WebSocket handshakes
 			tokenStr = r.URL.Query().Get("token")
@@ -98,20 +55,13 @@ func (um *UserMiddleware) Authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
-		// Create timeout context with 2 seconds max
+		// Create timeout context with 5 seconds max
 		ctx, cancel := context.WithTimeout(r.Context(), utils.REQUEST_TIMEOUT)
 		defer cancel()
-		// Safely decode the hex string token
-		// token, err :=  hex.DecodeString(tokenStr)
-		token, err := base64.URLEncoding.DecodeString(tokenStr)
+		// verify token
+		user, _, err := um.UserStore.VerifyToken(ctx, tokenStr)
 		if err != nil {
-			utils.WriteJSON(w, http.StatusBadRequest, utils.Envlope{"error": "Malformed token payload"})
-			return
-		}
-    // fetch user 
-		user, err := um.UserStore.GetUserByToken(ctx, tokens.AuthScope, token)
-		if err != nil {
+			log.Printf("No User found for token: %s", err.Error())
 			utils.WriteJSON(w, http.StatusInternalServerError, utils.Envlope{"error": "Something went wrong"})
 			return
 		}

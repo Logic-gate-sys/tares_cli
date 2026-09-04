@@ -1,33 +1,32 @@
-import { AuthProvider } from "./state/context/auth-context";
-import { AuthGate } from "#pages/auth-gate";
+import { AuthProvider } from "#store/auth-reducer";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Home } from "#pages/home/index";
-import { NotFound } from "#pages/not-found";
-import { Lobby } from "#pages/game/lobby/game-lobby";
-import { Game } from "#pages/game/layout";
-import HomeLayout from "#pages/home/layout";
+import { AuthGate, NotFound, Home, Lobby, Game, HomeLayout } from '#pages/index';
+import { Provider } from "react-redux";
+import { store } from "#store/store";
+import { UIProvider } from "./context/ui-context";
 
 function App() {
-    return (
-        <BrowserRouter>
-            <AuthProvider>
-                <Routes>
-                    {/*-------- Home layouts --------------*/}
-                    <Route element={<HomeLayout/>}>
-                       <Route path="/" element={<Home />} />
-                    </Route>
-                    {/*-------- Auth Gate -----------------*/}
-                    <Route element={<AuthGate/>}>
-                        <Route element={<Game/>}>
-                             <Route path="/game/lobby" element={<Lobby />} />
-                             <Route path="/game/arena" element={<Lobby />} />
-                        </Route>
-                    </Route>
-
-                    <Route path="*" element={<NotFound />}/>
-                </Routes>
-            </AuthProvider>
-        </BrowserRouter>
-    );
+  return (
+    <BrowserRouter>
+      <UIProvider>
+      <AuthProvider>
+        <Provider store={store}>
+          <Routes>
+            <Route element={<HomeLayout />}>
+              <Route path="/" element={<Home />} />
+            </Route>
+            <Route element={<AuthGate />}>
+              <Route element={<Game />}>
+                <Route path="/game/lobby" element={<Lobby />} />
+                <Route path="/game/arena" element={<Lobby />} />
+              </Route>
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Provider>
+        </AuthProvider>
+      </UIProvider>
+    </BrowserRouter>
+  );
 }
 export default App;

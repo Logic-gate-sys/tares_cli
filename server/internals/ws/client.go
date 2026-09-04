@@ -14,9 +14,8 @@ type client struct {
 	socket               *websocket.Conn // socket connection by which the client communicates over the network
 	inLobbyToClientEvent chan events.LobbyStateBroadcast
 	inGameToClientEvent  chan events.GameStateBroadcast //messages going from server to client
-	room                 *Room
+	room                 *PlayerRoom
 	manager              *roomManager
-	// should I add acess tokens here?
 }
 
 // Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser
@@ -65,12 +64,14 @@ func (c *client) writeToClientPump() {
 			// attempt writting to client
 			writer, err := c.socket.NextWriter(websocket.TextMessage)
 			if err != nil {
-				fmt.Println("Writer failed, please try and ocnnect again")
+				fmt.Println("Writer failed, please try and connect again")
 				return
 			}
 			if err := json.NewEncoder(writer).Encode(msg); err != nil {
 				fmt.Printf("Failed to send lobby broadcast message to client: %v", err)
 			}
+			// flush message to client
+			fmt.Printf("Lobby event sent to client: %s", c.name)
 			writer.Close()
 		}
 

@@ -25,9 +25,10 @@
         "paths": {
             "#components/*": ["src/components/*"],
             "#hooks/*": ["src/hooks/*"],
-            "#state/*": ["src/state/*"],
+            "#store/*": ["src/store/*"],
             "#services/*": ["src/services/*"],
             "#types/*": ["src/types/*"],
+            "#context/*":["src/context/*"],
             "#pages/*": ["src/pages/*"],
         }
     },

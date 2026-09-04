@@ -5,21 +5,28 @@
     "main": "./src/main.tsx",
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "concurrently --kill-others -n docker,server,client -c magenta,green,yellow \"npm:start:pg\" \"npm:dev:server\" \"npm:dev:client\" ",
+        "dev:server": "cd .. && make dev-server",
+        "dev:client": "vite ",
+        "start:pg": "cd .. && make start-pg",
         "test": "vitest run --coverage",
         "build": "tsc -b && vite build",
         "lint": "eslint . --fix",
         "preview": "vite preview"
     },
     "dependencies": {
+        "@reduxjs/toolkit": "^2.12.0",
         "@tailwindcss/vite": "^4.3.1",
         "axios": "^1.18.1",
         "gsap": "^3.15.0",
         "lucide-react": "^1.22.0",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
+        "react-redux": "^9.3.0",
         "react-router-dom": "^7.18.1",
-        "tailwindcss": "^4.3.1"
+        "tailwindcss": "^4.3.1",
+        "zed": "^0.1.0",
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -28,6 +35,7 @@
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.2",
         "@vitest/coverage-v8": "^4.1.9",
+        "concurrently": "^10.0.4",
         "eslint": "^10.5.0",
         "eslint-plugin-react-hooks": "^7.1.1",
         "eslint-plugin-react-refresh": "^0.5.3",

@@ -1,35 +1,27 @@
-// Client → Server
+// All messages format of communication: client ---> go server
+// Messages format reflects how communications are supposed to be initiated and carry on
+import type { Room } from "./entities"
+
+// client --> server 
 export type ClientMessage =
-  | { type: 'game.join'; roomId: string }
-  | { type: 'game.wordSubmitted'; word: string }
-  | { type: 'game.action'; action: 'PAUSE' | 'RESUME' | 'STOP' }
+  | { type: `in:lobby`, payload:
+    | { action: 'room:create',  value: { name: string } } // sends message to socket 
+    | { action: 'room:update', value: { name: string} }
+    | { action: 'room:join',    value: { roomId: string } }
+    | { action: 'room:leave',   value: { roomId: string } }
+  }
+
 
 // Server → Client (broadcasts)
 export type ServerMessage =
-  | { type: 'connection.established'; playerId: string }
-  | { type: 'room.joined'; roomId: string; players: Player[] }
-  | { type: 'room.playerJoined'; player: Player }
-  | { type: 'room.playerLeft'; playerId: string }
-  | { type: 'game.started'; scrambledWord: string; timeLimit: number }
-  | { type: 'game.scoreUpdate'; scores: Record<string, number> }
-  | { type: 'game.timerTick'; secondsRemaining: number }
-  | { type: 'game.ended'; winner: string; finalScores: Record<string, number> }
-  | { type: 'error'; message: string }
-
-export interface Player {
-  id: string
-  email: string
-  score: number
-}
-
-export interface GameState {
-  roomId: string | null
-  playerId: string | null
-  players: Player[]
-  currentWord: string | null
-  scrambledWord: string | null
-  scores: Record<string, number>
-  timeRemaining: number
-  gameStatus: 'idle' | 'waiting' | 'playing' | 'ended'
-  error: string | null
-}
+  | {
+    type: 'in:lobby', payload:
+    | { which: 'available:rooms', data: Room[], message?: string }
+    | { which: 'rooms:new', data: Room }
+    | { which: 'rooms:update', data: Room }
+    | {which: 'rooms:off-line', data: {id: string}}
+  }
+  | {
+    type: 'in:game', payload:
+    | { which: 'score:in', data: unknown }
+  }
