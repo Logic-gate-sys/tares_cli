@@ -8,6 +8,7 @@ const (
 	CreateRoom lobbyAction = "room:create"
 	JoinRoom   lobbyAction = "room:join"
 	LeaveRoom   lobbyAction = "room:leave"
+	UpdateRoom lobbyAction = "room:update"
 )
 
 type GameRoomAction string
@@ -54,6 +55,7 @@ type Which string
 const (
 	AvailableRooms Which ="available:rooms"
 	NewRoom        Which ="rooms:new"
+	UpdatedRoom    Which ="rooms:update"
 )
 type LobbyStateBroadcast struct {
 	Which   Which       `json:"which"`

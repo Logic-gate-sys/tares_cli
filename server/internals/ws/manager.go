@@ -120,6 +120,33 @@ func (rm *roomManager) Run() {
 					}
 				}
 				
+				// when a user updates their room; 
+				case  events.UpdateRoom: {
+					var payload struct {
+						Name string `json:"name"`
+					}
+					err := json.Unmarshal(action.Action.Value, &payload)
+					// if room id is not valid 
+					if payload.Name ==""{
+						break;
+					}
+				 ctx := context.Background()
+				 room,err := rmStore.GetRoomByName(ctx, payload.Name)
+				 if err !=nil{
+						log.Println("Error(wss): ",  err.Error())
+						break  
+					}
+
+				 log.Printf("(updated)Room to clients: %v", room)
+				 for client,_ := range rm.lobbyClients{
+						  client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+							Which: events.UpdatedRoom,
+							Data: room,
+							Message: "Updated room",
+						}
+					}
+				}
+				
 			// incase user wants to join an available room
 				case events.JoinRoom:
 

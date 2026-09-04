@@ -7,14 +7,14 @@ export type RoomData = {
   icon: string; // icon url return from server 
   iconBgClass: string;
   iconTextColorClass: string;
-  players?:number,
+  players?: number,
   playersText?: string;
   timeLeftText?: string;
   avatars?: {src: string;alt: string;bgClass: string;}[];
   extraPlayersCount?: number; 
-  isOnline?:boolean,
-  
+  status?:'online'|'offline'|'playing'|'waiting',
 }
+
 export type Props = {
   data: RoomData,
   playerId: string;
@@ -83,10 +83,10 @@ export const RoomCard = ({data, playerId,onJoin,onOpenSettings, onOpenDelete, on
               <button
                 onClick={onToggleStatus}
                 className={`${
-                  data.isOnline ? 'bg-action-red' : 'bg-deep-ink'
+                  data.status !=="offline" ? 'bg-action-red' : 'bg-deep-ink'
                 } text-paper-white px-3 py-1 border-2 border-deep-ink text-xs font-label-bold active:scale-95 transition-transform`}
               >
-                {data.isOnline ? 'ONLINE' : 'OFFLINE'}
+                {data.status==="online" ? 'ONLINE' : 'OFFLINE'}
               </button>
             </div>
           </div>

@@ -3,8 +3,7 @@ import { CreateRoomModal } from '#components/form-modals';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from 'src/store/store';
 import { type Room, type RoomCreateType } from '#types/entities';
-import {useCreateRoomMutation, useDeleteRoomMutation, useUpdateRoomMutation,
- useGetRoomsQuery} from '#store/services/room-extend';
+import {useCreateRoomMutation, useDeleteRoomMutation, useUpdateRoomMutation} from '#store/services/room-extend';
 import { pushToLobby } from '#store/slices/lobby-slice'
 import { RoomCard } from '#components/game/room';
 import { DeleteModal } from '#components/game/delete-modal';
@@ -67,18 +66,18 @@ import { Loader } from '#components/ui/loader';
 // ];
 
 export function Lobby() {
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
   const { availableRooms } = useSelector((state: RootState) => state.lobby)
   const { state } = useAuth();
-  const { showNotice} = useUI(); 
-  
-  
+  const { showNotice} = useUI();
+
+
   // RTK QUERY & MUTATION FLAGS
   const [createRoom, { isLoading: isCreating}] = useCreateRoomMutation();
   const [deleteRoom, { isLoading: isDeleting }] = useDeleteRoomMutation();
-  const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation(); 
+  const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
 
-  // MODALS & SELECTION STATES 
+  // MODALS & SELECTION STATES
   const [openRoomSettings, setOpenRoomSettings] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedRooId, setSelectedRoomId] = useState<string>();
@@ -87,9 +86,9 @@ export function Lobby() {
 
   const selectedRoom = selectedRooId? availableRooms?.find((rm)=> rm.id ===selectedRooId):null
   const isBusy = isCreating || isDeleting ||isUpdating;
-    
-  
-  // ASYNC HANDLERS 
+
+
+  // ASYNC HANDLERS
   const handleCreateRoom = async (data: RoomCreateType) => {
     try {
       await createRoom(data).unwrap();
@@ -105,7 +104,8 @@ export function Lobby() {
   const handleUpdateRoom= async (data: Partial<Room>) => {
     try {
       await updateRoom(data).unwrap();
-      setOpenModal(false)
+      setOpenRoomSettings(false);
+      dispatch(pushToLobby({ type: 'in:lobby', payload: { action: 'room:update', value: { name: data.name } } }));
       showNotice("Success", "Room updated successfully")
     } catch (err: unknown) {
       console.log("error: ", err)
@@ -115,7 +115,7 @@ export function Lobby() {
 
   // deleting a room
   const handleDeleteRoom = async () => {
-    if (!selectedRooId) return; 
+    if (!selectedRooId) return;
     try {
       await deleteRoom({ id: selectedRooId }).unwrap();
       showNotice("Success", "Room deleted successfully");
@@ -125,7 +125,7 @@ export function Lobby() {
       showNotice("Error!", "Failed to delete room ");
     }
   }
-  
+
   return (
     <div className="relative bg-surface text-on-surface min-h-screen overflow-x-hidden font-body-md selection:bg-action-red selection:text-white">
       {/* Dynamic Neubrutalism Styles Injector */}
@@ -306,7 +306,7 @@ export function Lobby() {
             </div>
           </aside>
         </div>
-       
+
         <Loader isLoading={isBusy} />
         {/*--------------- MODAL FORM -----------------*/}
         {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
@@ -316,6 +316,3 @@ export function Lobby() {
     </div>
   );
 }
-
-
-

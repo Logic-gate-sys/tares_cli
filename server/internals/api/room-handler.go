@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
 	"github.com/logic-gate-sys/tares-cli/internals/store"
@@ -110,6 +109,7 @@ func (rh *RoomHandler) HandleUpdateRoom(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		rh.Logger.Printf("Failed to updated room : %s", err.Error())
 		utils.WriteJSON(w, 500, utils.Envlope{"error": "Failed to update room "})
+		return
 	}
 
 	rh.Logger.Printf("Room updated successfully ")

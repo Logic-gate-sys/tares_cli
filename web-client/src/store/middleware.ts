@@ -30,7 +30,7 @@ export const socketMiddleware = (): Middleware => {
               store.dispatch(setAvailableRooms(res.payload.data as Room[]))
               break;
             }
-            if (res.payload.which === "rooms:new") {
+            if (res.payload.which === "rooms:new" || res.payload.which==="rooms:update") {
               console.log("NEW ROOM: ", res.payload.data)
               store.dispatch(addRoom(res.payload.data));
               break;

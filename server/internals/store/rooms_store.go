@@ -10,10 +10,10 @@ import (
 type Status string
 
 const (
-	Waiting  Status = "waiting"  // in lobby waiting
-	Playing  Status = "playing"  // currently hosting play
-	Finished Status = "online" // completed play
-	Idle     Status = "offline"     // not online or not active
+	Waiting  Status = "waiting" // in lobby waiting
+	Playing  Status = "playing" // currently hosting play
+	Finished Status = "online"  // completed play
+	Idle     Status = "offline" // not online or not active
 )
 
 type CreateRoom struct {
@@ -37,6 +37,7 @@ type PlayerAvatar struct {
 
 type RoomViewModel struct {
 	ID                 string         `json:"id"`
+	OwnerId            string         `json:"ownerId"`
 	Name               string         `json:"name"`
 	Capacity           int            `json:"capacity"`
 	Status             string         `json:"status"`
@@ -50,11 +51,11 @@ type RoomViewModel struct {
 }
 
 type RoomUpdateType struct {
-	OwnerId string 	`json:"ownerId"`
-	Name   string `json:"name"`
-	Capacity int `json:"capacity"`
-	Icon   string `json:"icon"`
-	Status string `json:"status"`
+	OwnerId  string `json:"ownerId"`
+	Name     string `json:"name"`
+	Capacity int    `json:"capacity"`
+	Icon     string `json:"icon"`
+	Status   string `json:"status"`
 }
 
 type PostGresRoomStore struct {
@@ -70,9 +71,9 @@ func NewPostgresRoomStore(db *sql.DB) *PostGresRoomStore {
 type RoomStore interface {
 	CreateRoom(rm *CreateRoom) (CreateRoom, error)
 	GetAllRooms(ctx context.Context) ([]RoomViewModel, error)
-	GetRoomByName(ctx context.Context, name string)(RoomViewModel, error)
+	GetRoomByName(ctx context.Context, name string) (RoomViewModel, error)
 	DeleteRoom(ctx context.Context, id string) (bool, error)
-	UpdateRoom(ctx context.Context, id string, d RoomUpdateType)  error
+	UpdateRoom(ctx context.Context, id string, d RoomUpdateType) error
 }
 
 func (pr *PostGresRoomStore) CreateRoom(rm *CreateRoom, ctx context.Context) (CreateRoom, error) {
@@ -96,7 +97,7 @@ func (pr *PostGresRoomStore) CreateRoom(rm *CreateRoom, ctx context.Context) (Cr
 func (pr *PostGresRoomStore) GetAllRooms(ctx context.Context) ([]RoomViewModel, error) {
 	query := `
 		SELECT
-		  r.id::text,r.name,r.capacity,r.status,r.icon,r.icon_bg_class,r.icon_text_color_class,
+		  r.id::text,r.owner_id,r.name,r.capacity,r.status,r.icon,r.icon_bg_class,r.icon_text_color_class,
 			COUNT(rp.user_id)::INT AS players,
 			COALESCE(
 		   json_agg(
@@ -127,7 +128,7 @@ func (pr *PostGresRoomStore) GetAllRooms(ctx context.Context) ([]RoomViewModel, 
 	for rows.Next() {
 		var rm RoomViewModel
 		var avatarsRaw []byte
-		err := rows.Scan(&rm.ID, &rm.Name, &rm.Capacity,&rm.Status,&rm.Icon, &rm.IconBgClass, &rm.IconTextColorClass, &rm.Players,
+		err := rows.Scan(&rm.ID, &rm.OwnerId, &rm.Name, &rm.Capacity, &rm.Status, &rm.Icon, &rm.IconBgClass, &rm.IconTextColorClass, &rm.Players,
 			&avatarsRaw, &rm.ExtraPlayersCount)
 		if err != nil {
 			return nil, err
@@ -143,11 +144,11 @@ func (pr *PostGresRoomStore) GetAllRooms(ctx context.Context) ([]RoomViewModel, 
 	return result, nil
 }
 
-func (pr *PostGresRoomStore) GetRoomByName(ctx context.Context, name string)(RoomViewModel, error){
-	var rm RoomViewModel 
+func (pr *PostGresRoomStore) GetRoomByName(ctx context.Context, name string) (RoomViewModel, error) {
+	var rm RoomViewModel
 	query := `
 		SELECT
-		  r.id::text,r.name,r.capacity,r.status,r.icon,r.icon_bg_class,r.icon_text_color_class,
+		  r.id::text,r.owner_id,r.name,r.capacity,r.status,r.icon,r.icon_bg_class,r.icon_text_color_class,
 			COUNT(rp.user_id)::INT AS players,
 			COALESCE(
 		   json_agg(
@@ -167,20 +168,18 @@ func (pr *PostGresRoomStore) GetRoomByName(ctx context.Context, name string)(Roo
 		GROUP BY r.id
 		ORDER BY r.created_at DESC;
 	`
-  var avatarsRaw []byte 
-	err := pr.db.QueryRowContext(ctx, query, name).Scan(&rm.ID, &rm.Name, &rm.Capacity,&rm.Status,&rm.Icon, 
-		&rm.IconBgClass, &rm.IconTextColorClass, &rm.Players,&avatarsRaw, &rm.ExtraPlayersCount)
-	if err !=nil{
+	var avatarsRaw []byte
+	err := pr.db.QueryRowContext(ctx, query, name).Scan(&rm.ID, &rm.OwnerId, &rm.Name, &rm.Capacity, &rm.Status, &rm.Icon,
+		&rm.IconBgClass, &rm.IconTextColorClass, &rm.Players, &avatarsRaw, &rm.ExtraPlayersCount)
+	if err != nil {
 		return RoomViewModel{}, err
 	}
-  err = json.Unmarshal(avatarsRaw, &rm.Avatars)
-  if err !=nil{
-   	return RoomViewModel{},err
-  }
+	err = json.Unmarshal(avatarsRaw, &rm.Avatars)
+	if err != nil {
+		return RoomViewModel{}, err
+	}
 	return rm, nil
 }
-
-
 
 func (pr *PostGresRoomStore) DeleteRoom(ctx context.Context, id string) (bool, error) {
 	query := `DELETE FROM rooms WHERE id=$1`
@@ -201,28 +200,23 @@ func (pr *PostGresRoomStore) DeleteRoom(ctx context.Context, id string) (bool, e
 	return true, nil
 }
 
-
-func (pr *PostGresRoomStore) UpdateRoom(ctx context.Context, roomId string, d RoomUpdateType)error{
-	query :=`UPDATE rooms 
-	         SET 
-						  name=$1
-							capacity=$2
-							icon=$3
-							status=$4
+func (pr *PostGresRoomStore) UpdateRoom(ctx context.Context, roomId string, d RoomUpdateType) error {
+	query := `UPDATE rooms
+	         SET name=$1, capacity=$2, icon=$3, status=$4
 					 WHERE id=$5 AND owner_id=$6`
 
-	results, err := pr.db.ExecContext(ctx, query, d.Name, d.Capacity,d.Icon,d.Status,d.OwnerId)
-	if err !=nil{
-		return err 
-	}
-	rowAffected, err := results.RowsAffected()
-	if err !=nil{
+	results, err := pr.db.ExecContext(ctx, query, d.Name, d.Capacity, d.Icon, d.Status, roomId, d.OwnerId)
+	if err != nil {
 		return err
 	}
-	if rowAffected <=0{
+	rowAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowAffected <= 0 {
 		return sql.ErrNoRows
 	}
-	
-return nil 
-	
+
+	return nil
+
 }
