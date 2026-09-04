@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     owner_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     capacity INT NOT NULL DEFAULT 4,
-    status VARCHAR(50) NOT NULL DEFAULT 'waiting', -- 'waiting', 'playing', 'finished', 'iddle'
+    status VARCHAR(50) NOT NULL DEFAULT 'waiting', -- 'waiting', 'online', 'offline', 'playing'
     icon VARCHAR(255) NOT NULL DEFAULT '',
     icon_bg_class TEXT NOT NULL,
     icon_text_color_class TEXT NOT NULL,

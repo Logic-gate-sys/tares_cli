@@ -21,8 +21,8 @@ const (
 
 type InlobbyUserAction struct {
 	User   *Player
-	Action lobbyAction   `json:"action"`
-	Value  interface{}   `json:"value"`
+	Action lobbyAction     `json:"action"`
+	Value  json.RawMessage `json:"value"`
 }
 
 type IngameUserAction struct {
@@ -53,6 +53,7 @@ type GameStateBroadcast struct {
 type Which string 
 const (
 	AvailableRooms Which ="available:rooms"
+	NewRoom        Which ="rooms:new"
 )
 type LobbyStateBroadcast struct {
 	Which   Which       `json:"which"`

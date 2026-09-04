@@ -28,6 +28,7 @@
             "#store/*": ["src/store/*"],
             "#services/*": ["src/services/*"],
             "#types/*": ["src/types/*"],
+            "#context/*":["src/context/*"],
             "#pages/*": ["src/pages/*"],
         }
     },

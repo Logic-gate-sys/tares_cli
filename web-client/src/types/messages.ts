@@ -2,11 +2,12 @@
 // Messages format reflects how communications are supposed to be initiated and carry on
 import type { Room } from "./entities"
 
+// client --> server 
 export type ClientMessage =
   | { type: `in:lobby`, payload:
-    | { action: 'room:create', value: Room } // sends message to socket 
-    | { action: 'room:join', value: { roomId: string } }
-    | { action: 'room:leave', value: { roomId: string } }
+    | { action: 'room:create', value: { name: string} } // sends message to socket 
+    | { action: 'room:join',   value: { roomId: string } }
+    | { action: 'room:leave',  value: { roomId: string } }
   }
 
 

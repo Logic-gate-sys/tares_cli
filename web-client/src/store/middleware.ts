@@ -31,6 +31,7 @@ export const socketMiddleware = (): Middleware => {
               break;
             }
             if (res.payload.which === "rooms:new") {
+              console.log("NEW ROOM: ", res.payload.data)
               store.dispatch(addRoom(res.payload.data));
               break;
             }
@@ -54,7 +55,7 @@ export const socketMiddleware = (): Middleware => {
     
     // outbound lobby messages
     if (lobbySlice.actions.pushToLobby.match(action)) {
-      if (socket && socket.readyState === WebSocket.OPEN) {
+      if (socket && socket.readyState === WebSocket.OPEN) {  
         socket.send(JSON.stringify(action.payload))
       };
       //  in-game client messages  

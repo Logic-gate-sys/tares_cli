@@ -2,10 +2,10 @@ package ws
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
-
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/tares-cli/internals/events"
 	"github.com/logic-gate-sys/tares-cli/internals/middleware"
@@ -61,11 +61,13 @@ func NewRoomManager() *roomManager {
 
 // manages lobby state(joining, leaving, discovering rooms)
 func (rm *roomManager) Run() {
+	//initialise db outside http 
 	db, err := store.Open()
 	if err != nil {
 		return
 	}
 	rmStore := store.NewPostgresRoomStore(db)
+	// the loop 
 	for {
 		select {
 		// when client joins lobby channel
@@ -88,13 +90,40 @@ func (rm *roomManager) Run() {
 			delete(rm.lobbyClients, client)
 			close(client.inLobbyToClientEvent)
 			log.Printf("Client: %s left lobby", client.name)
+			
 		// if an event is sent to lobby
 		case action := <-rm.lobbyInbound:
 			switch action.Action.Action {
-			// incase user wants to join an available room
-			case events.JoinRoom:
+				case  events.CreateRoom: {
+					var payload struct {
+						Name string `json:"name"`
+					}
+					err := json.Unmarshal(action.Action.Value, &payload)
+					// if room id is not valid 
+					if payload.Name ==""{
+						break;
+					}
+				 ctx := context.Background()
+				 room,err := rmStore.GetRoomByName(ctx, payload.Name)
+				 if err !=nil{
+						log.Println("Error(wss): ",  err.Error())
+						break  
+					}
 
-				break
+				 log.Printf("Room to clients: %v", room)
+				 for client,_ := range rm.lobbyClients{
+						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+							Which: events.NewRoom,
+							Data: room,
+							Message: "New room created",
+						}
+					}
+				}
+				
+			// incase user wants to join an available room
+				case events.JoinRoom:
+
+					break
 			}
 		}
 	}

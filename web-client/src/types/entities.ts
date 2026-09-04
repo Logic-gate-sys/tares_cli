@@ -2,8 +2,10 @@
 
 export type Room = {
   id: string;
+  ownerId?: string;
   name: string;
   capacity: number; 
+  status?: 'online'|'offline'|'playing'|'waiting'
   icon: string; // icon url return from server 
   iconBgClass: string;
   iconTextColorClass: string;

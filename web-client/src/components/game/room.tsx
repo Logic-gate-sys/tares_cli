@@ -1,5 +1,5 @@
 
-type RoomData = {
+export type RoomData = {
   id: string;
   name: string;
   ownerId?: string;
@@ -15,7 +15,7 @@ type RoomData = {
   isOnline?:boolean,
   
 }
-type Props = {
+export type Props = {
   data: RoomData,
   playerId: string;
   onJoin?: () => void;
@@ -25,7 +25,7 @@ type Props = {
 }
 
 export const RoomCard = ({data, playerId,onJoin,onOpenSettings, onOpenDelete, onToggleStatus}: Props) => {
-  const isOwner = playerId === data.ownerId? true: false; 
+  const isOwner = playerId === data.ownerId? false: true; 
   
   return (
     <div className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group">
