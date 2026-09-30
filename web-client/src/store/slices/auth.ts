@@ -11,6 +11,9 @@ export interface AuthState {
     username?: string;
     p_level?: string;
     bio?: string;
+    wins: number;
+    rank: string;
+    accuracy: number;
     total_score?: number;
     createdAt: string | Date;
   };
@@ -114,23 +117,25 @@ export const authSlice = createSlice({
       .addMatcher(
         authApi.endpoints.signUp.matchFulfilled,
         (state, action: PayloadAction<AuthResponse>) => {
-          state.token = action.payload.token;
-          state.user = action.payload.user;
+          const {user, token, error } = action.payload; 
+          state.token = token;
+          state.user = user;
           state.status = "is-authenticated";
           state.progress = 100;
-          state.message = "Sign up successful!";
-          state.error = null;
+          state.message = "Sign up successful!, please login";
+          state.error = error as string;
         },
       )
       .addMatcher(
         authApi.endpoints.signIn.matchFulfilled,
         (state, action: PayloadAction<AuthResponse>) => {
-          state.token = action.payload.token;
-          state.user = action.payload.user;
+          const { user, error, token } = action.payload;
+          state.token = token;
+          state.user =  user;
           state.status = "is-authenticated";
           state.progress = 100;
           state.message = 'Sign in successful!!';
-          state.error = null;
+          state.error = error as string ;
         },
       )
       .addMatcher(

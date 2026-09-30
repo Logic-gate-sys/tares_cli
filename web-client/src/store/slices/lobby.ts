@@ -6,7 +6,7 @@ import { roomApi } from "../services/roomExtend";
 
   
 export type LobbyState = {
-  socketStatus:  "disconnected" | "idle" | "connecting" |"connected" |"error";
+  socketStatus: "disconnected" | "idle" | "connecting" | "connected" | "error";
   availableRooms: Room[];
   message?: string;
   inComingRequests?: Request[];

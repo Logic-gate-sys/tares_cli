@@ -21,6 +21,9 @@ export type AuthResponse = {
     id: number;
     email: string;
     username?: string;
+    wins: number;
+    rank: string;
+    accuracy: number;
     p_level?: string;
     bio?: string;
     total_score?: number;

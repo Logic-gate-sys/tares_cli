@@ -19,7 +19,7 @@ export function Lobby() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { availableRooms, message } = useSelector((state: RootState) => state.lobby)
-  const authState = useSelector((state: RootState) => state.auth);
+  const {user} = useSelector((state: RootState) => state.auth);
   const arenaState = useSelector((state: RootState) => state.arena);
   const { showNotice } = useUI();
   // RTK QUERY & MUTATION FLAGS
@@ -76,7 +76,7 @@ export function Lobby() {
     e?.preventDefault();
     if (!roomId) return;
     try {
-      if (!authState.user) return;
+      if (!user) return;
       dispatch(pushToLobby({
         type: 'in:lobby', payload: {
           action: "request:room:join", value: {
@@ -202,7 +202,7 @@ export function Lobby() {
             <div className="flex flex-col gap-4">
               {availableRooms.map((arena, idx) => {
                 return <div key={idx} onClick={() => setSelectedRoomId(arena.id)}>
-                  <RoomCard data={arena} playerId={authState.user?.id}
+                  <RoomCard data={arena} playerId={user?.id}
                     onJoin={(event) => handleRoomJoinRequest(event, arena.id)}
                     onEnterOwnRoom={(event) => handleEnterOwnRoom(event)}
                     onOpenDelete={() => setOpenDelete(true)}
@@ -221,15 +221,15 @@ export function Lobby() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-paper-white p-4 border-2 border-paper-white text-deep-ink text-center">
                   <p className="text-label-mono font-label-mono text-xs uppercase opacity-70">WINS</p>
-                  <p className="text-headline-md font-headline-md">124</p>
+                  <p className="text-headline-md font-headline-md">{user.wins}</p>
                 </div>
                 <div className="bg-action-red p-4 border-2 border-paper-white text-paper-white text-center">
                   <p className="text-label-mono font-label-mono text-xs uppercase opacity-70">LEVEL</p>
-                  <p className="text-headline-md font-headline-md">42</p>
+                  <p className="text-headline-md font-headline-md">{ user.rank}</p>
                 </div>
                 <div className="col-span-2 bg-sky-blue p-4 border-2 border-paper-white text-deep-ink flex justify-between items-center">
                   <p className="text-label-bold font-label-bold">ACCURACY</p>
-                  <p className="text-headline-md font-headline-md">94%</p>
+                  <p className="text-headline-md font-headline-md">{user.accuracy}%</p>
                 </div>
               </div>
             </div>

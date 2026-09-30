@@ -29,7 +29,7 @@ export const RoomCard = ({ data, playerId, onJoin,onEnterOwnRoom, onOpenSettings
   const isOwner = (playerId === data.ownerId) ? true : false;
 
   return (
-    <div className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group">
+    <div className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Room Header & Details */}
         <div className="flex items-center gap-6">
@@ -95,13 +95,13 @@ export const RoomCard = ({ data, playerId, onJoin,onEnterOwnRoom, onOpenSettings
           <div className="flex gap-2">
             <button
               onClick={onOpenSettings}
-              className="w-10 h-10 bg-paper-white border-2 border-deep-ink flex items-center justify-center hover:bg-action-red hover:text-paper-white transition-colors shadow-[2px_2px_0px_0px_rgba(18,23,33,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              className="w-10 h-10 bg-paper-white border-2 border-deep-ink flex items-center justify-center hover:bg-action-red hover:text-paper-white transition-colors shadow-[2px_2px_0px_0px_rgba(18,23,33,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
             >
               <span className="material-symbols-outlined">settings</span>
             </button>
             <button
               onClick={onOpenDelete}
-              className="w-10 h-10 bg-action-red text-paper-white border-2 border-deep-ink flex items-center justify-center hover:bg-deep-ink transition-colors shadow-[2px_2px_0px_0px_rgba(18,23,33,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              className="w-10 h-10 bg-action-red text-paper-white border-2 border-deep-ink flex items-center justify-center hover:bg-deep-ink transition-colors shadow-[2px_2px_0px_0px_rgba(18,23,33,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
             >
               <span className="material-symbols-outlined">close</span>
             </button>

@@ -42,6 +42,9 @@ function toAuthUser(user: {
   id: number;
   email: string;
   username: string;
+  accuracy: number;
+  wins: number;
+  rank: string;
   playerLevel: string;
   bio: string;
   totalScore: number;
@@ -52,6 +55,9 @@ function toAuthUser(user: {
     email: user.email,
     username: user.username,
     p_level: user.playerLevel,
+    accuracy: user.accuracy,
+    rank: user.rank,
+    wins: user.wins,
     bio: user.bio,
     total_score: user.totalScore,
     createdAt: user.createdAt,
