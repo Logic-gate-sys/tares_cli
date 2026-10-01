@@ -8,15 +8,6 @@ import (
 	"github.com/logic-gate-sys/wss_service/internals/timer"
 )
 
-/*
-	 Note:
-	    We met three conditions :
-		  1. If a client request to join or leave is received we response appropritely
-		  2. If a message through the 'forward' channel is received , we responds also
-		  3. We make sure in sending message down the client channel , we remove any blocking client
-		         like a client that's not only or who is not able to receive message
-		# We make this so that once the messages gets send down the client.send channel, our client's write method will pick it up and write to the client through the socket
-*/
 type RoomOption func(*PlayerRoom)
 
 type Status string
@@ -30,7 +21,7 @@ const (
 type PlayerRoom struct {
 	Room    store.CreateRoom `json:"room"`
 	Timer   timer.GameClock  `json:"timer"`
-	Clients map[*client]bool `json:"clients"` // holds all clients currently in a room
+	Clients map[*client]bool `json:"clients"` // active clients in game
 	// channels
 	inboundEvents  chan events.IngameUserAction   // events client sent to server room
 	outBoundEvents chan events.GameStateBroadcast // events to be broadcasted to clients
@@ -47,15 +38,19 @@ type PlayerRoom struct {
 func (pr *PlayerRoom) Run() {
 	for {
 		select {
+	 // when  Join event arrives via room's channel
 		case client := <-pr.join:
 			pr.Clients[client] = true
-			client.manager.lobbyLeave <- client
-			log.Printf("Client: %s joined room: %s", client.name, pr.Room.Name)
+			// client.manager.lobbyLeave <- client
+			log.Printf("Client: %s joined Game-Room: %s", client.name, pr.Room.Name)
 
+		// when client leaves arena, they should be returned to lobby
 		case client := <-pr.leave:
 			delete(pr.Clients, client)
 			close(client.inGameToClientEvent)
-			log.Printf("Client left room: %s", client.name)
+			// return client to lobby
+			client.manager.lobbyJoin <- client
+			log.Printf("Client left Game-Room: %s for lobby", client.name)
 		}
 	}
 }

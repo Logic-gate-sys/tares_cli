@@ -111,16 +111,18 @@ func (rm *roomManager) Run() {
 				}
 				// join room-owner into his room without further approval
 				if action.Client.userId == int32(ownerID) {
-					if err := rm.joinRoom(action.Client, room); err != nil {
+					err, playerRoom := rm.joinRoom(action.Client, room)
+					if err != nil {
 						log.Println("Owner failed to join room:", err)
 						action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 							Which: events.JoinResponse,
 							Data:  map[string]any{"accepted": false, "message": err.Error()},
 						}
-						
+
 						break
 					}
-					log.Println("<<:::Owner joined his room")
+					// put client on gameRoom's channel;
+					playerRoom.join <- action.Client
 					break
 				}
 				stats, err := rm.grpcClient.GetUserStats(context.Background(), action.Client.userId)
@@ -190,7 +192,8 @@ func (rm *roomManager) Run() {
 					break
 				}
 				// admit requestor in room
-				if err := rm.joinRoom(pending.requester, room); err != nil {
+				err, playerRoom := rm.joinRoom(pending.requester, room)
+				if err != nil {
 					pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
 						Data:  map[string]any{"accepted": false, "message": err.Error()},
@@ -199,16 +202,18 @@ func (rm *roomManager) Run() {
 				}
 				// remove user from lobby after resolving and admitting him into requested room
 				delete(rm.lobbyClients, pending.requester)
+				// put accepted requester on join channel
+				playerRoom.join <- pending.requester
 			}
 		}
 	}
 }
 
 // Joins succeful user to requested room
-func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
+func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) (error, *PlayerRoom) {
 	//  if room is full and it's not null
 	if room.Capacity > 0 && rm.rooms[room.ID] != nil && len(rm.rooms[room.ID].Clients) >= room.Capacity {
-		return fmt.Errorf("room is full")
+		return fmt.Errorf("room is full"), nil
 	}
 
 	playerRoom := rm.rooms[room.ID]
@@ -216,7 +221,7 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
 	if playerRoom == nil {
 		ownerID, err := strconv.Atoi(room.OwnerId)
 		if err != nil {
-			return err
+			return err, nil
 		}
 		playerRoom = &PlayerRoom{
 			Room: store.CreateRoom{
@@ -240,17 +245,9 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
 			stopGame:       make(chan bool),
 			pauseGame:      make(chan bool),
 		}
-
 		rm.rooms[room.ID] = playerRoom
 		go playerRoom.Run()
 	}
-
-	c.room = playerRoom
-	// The manager owns room membership changes in its event loop.
-	// Sending to playerRoom.join here would deadlock: PlayerRoom.Run sends
-	// lobbyLeave back to this loop while this call is still blocked.
-	playerRoom.Clients[c] = true
-
 	//broadcast to client
 	c.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 		Which: events.JoinResponse,
@@ -259,7 +256,7 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
 			"room":     room,
 			"message":  fmt.Sprintf("Success!, welcome to game room: %s", room.Name)},
 	}
-	return nil
+	return nil, playerRoom
 }
 
 var (
@@ -292,7 +289,6 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	// run room & put client on lobbyJoin chan
 	rm.runOnce.Do(func() { go rm.Run() })
 	rm.lobbyJoin <- client
-
 	// start client read & write pumps
 	go client.writeToClientPump()
 	go client.readFromClientPump()
