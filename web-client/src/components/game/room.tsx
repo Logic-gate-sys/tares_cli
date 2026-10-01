@@ -17,7 +17,8 @@ export type RoomData = {
 
 export type Props = {
   data: RoomData,
-  playerId: number;
+  playerId?: number;
+  isOwner?: boolean;
   onJoin?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenSettings?: () => void;
   onOpenDelete?: () => void;
@@ -25,8 +26,7 @@ export type Props = {
   onEnterOwnRoom?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-export const RoomCard = ({ data, playerId, onJoin,onEnterOwnRoom, onOpenSettings, onOpenDelete, onToggleStatus }: Props) => {
-  const isOwner = (playerId === data.ownerId) ? true : false;
+export const RoomCard = ({ data, isOwner, onJoin, onEnterOwnRoom, onOpenSettings, onOpenDelete, onToggleStatus }: Props) => {
 
   return (
     <div className="bg-paper-white border-4 border-deep-ink p-6 neubrutalism-shadow-sm hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(18,23,33,1)] transition-all group">
@@ -62,11 +62,11 @@ export const RoomCard = ({ data, playerId, onJoin,onEnterOwnRoom, onOpenSettings
               </div>
             )}
           </div>
-          <button
-            onClick={isOwner? onEnterOwnRoom: onJoin}
-            className="flex-1 md:flex-none px-6 py-2 bg-sky-blue border-2 border-deep-ink font-label-bold text-deep-ink group-hover:bg-action-red group-hover:text-paper-white transition-colors"
+         <button
+            onClick={isOwner ? onEnterOwnRoom : onJoin}
+            className="flex-1 md:flex-none px-6 py-2 bg-sky-blue border-2 border-deep-ink font-label-bold text-deep-ink group-hover:bg-action-red group-hover:text-paper-white transition-colors active:scale-0.95"
           >
-            {isOwner ? "ENTER ROOM" : "REQUEST TO JOIN"}
+            {isOwner? "ENTER ROOM": "JOIN REQUEST"}
           </button>
         </div>
       </div>

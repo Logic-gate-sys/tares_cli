@@ -11,7 +11,7 @@ import { DeleteModal } from '#components/game/deleteModal';
 import { SettingsModal } from '#components/game/roomSettingModal';
 import { useUI } from '#context/uiContext';
 import { Loader } from '#components/ui/loader';
-import { changeStatus, setRoom } from '#store/slices/arena';
+
 
 
 
@@ -19,8 +19,8 @@ export function Lobby() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { availableRooms, message } = useSelector((state: RootState) => state.lobby)
-  const {user} = useSelector((state: RootState) => state.auth);
-  const arenaState = useSelector((state: RootState) => state.arena);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { room, status } = useSelector((state: RootState) => state.arena);
   const { showNotice } = useUI();
   // RTK QUERY & MUTATION FLAGS
   const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
@@ -32,9 +32,8 @@ export function Lobby() {
   const [selectedRooId, setSelectedRoomId] = useState<string>();
   const [openModal, setOpenModal] = useState<boolean>(false);
 
-  const selectedRoom = selectedRooId ? availableRooms?.find((rm) => rm.id === selectedRooId) : null
+  const selectedRoom = selectedRooId ? availableRooms?.find((rm) => rm.id === selectedRooId) : null;
   const isBusy = isCreating || isDeleting || isUpdating;
-
 
   // ASYNC HANDLERS
   const handleCreateRoom = async (data: RoomCreateType) => {
@@ -74,12 +73,14 @@ export function Lobby() {
   // handle sending join requests
   const handleRoomJoinRequest = async (e: React.MouseEvent | undefined, roomId: string) => {
     e?.preventDefault();
+    e?.stopPropagation();
     if (!roomId) return;
     try {
       if (!user) return;
       dispatch(pushToLobby({
         type: 'in:lobby', payload: {
-          action: "request:room:join", value: {
+          action: "request:room:join",
+          value: {
             roomId: roomId
           }
         }
@@ -90,24 +91,29 @@ export function Lobby() {
       showNotice("Error", "Request to join room failed")
     }
   }
-
-  const handleEnterOwnRoom = (e: React.MouseEvent | undefined) => {
-    // prevent default page reload behaviour
+  // when owner wants to enter their own Room
+  const handleEnterOwnRoom = (e: React.MouseEvent | undefined, roomId: string) => {
     e.preventDefault();
-    dispatch(changeStatus("room:in"));
-    dispatch(setRoom(selectedRoom));
+    e.stopPropagation();
+    if (!roomId) return;
+    dispatch(pushToLobby({
+      type: 'in:lobby',
+      payload: {
+        action: "request:room:join",
+        value: {
+          roomId: roomId
+        }
+      }
+    }));
   };
 
-
   useEffect(() => {
-    if (arenaState.status === "room:in" && arenaState.room) {
-      showNotice("Success", "Room join request successuful. waitting while we connect you to room");
+    if (status === "room:in" && room ) {
       navigate("/game/arena");
-    } else if (arenaState.status === "room:out") {
+    } else if (status === "room:out") {
       showNotice("Notice", message);
     }
-  }, [arenaState.room, arenaState.status, navigate, showNotice, message]);
-
+  }, [room, status, navigate, showNotice, message, user.id]);
 
 
   return (
@@ -202,9 +208,9 @@ export function Lobby() {
             <div className="flex flex-col gap-4">
               {availableRooms.map((arena, idx) => {
                 return <div key={idx} onClick={() => setSelectedRoomId(arena.id)}>
-                  <RoomCard data={arena} playerId={user?.id}
+                  <RoomCard data={arena} isOwner={arena.ownerId === user?.id}
                     onJoin={(event) => handleRoomJoinRequest(event, arena.id)}
-                    onEnterOwnRoom={(event) => handleEnterOwnRoom(event)}
+                    onEnterOwnRoom={(event) => handleEnterOwnRoom(event, arena.id)}
                     onOpenDelete={() => setOpenDelete(true)}
                     onOpenSettings={() => setOpenRoomSettings(true)}
                   />
@@ -225,7 +231,7 @@ export function Lobby() {
                 </div>
                 <div className="bg-action-red p-4 border-2 border-paper-white text-paper-white text-center">
                   <p className="text-label-mono font-label-mono text-xs uppercase opacity-70">LEVEL</p>
-                  <p className="text-headline-md font-headline-md">{ user.rank}</p>
+                  <p className="text-headline-md font-headline-md">{user.rank}</p>
                 </div>
                 <div className="col-span-2 bg-sky-blue p-4 border-2 border-paper-white text-deep-ink flex justify-between items-center">
                   <p className="text-label-bold font-label-bold">ACCURACY</p>
@@ -256,9 +262,6 @@ export function Lobby() {
         {openModal && (<CreateRoomModal onClose={() => setOpenModal(false)} onSubmit={handleCreateRoom} />)}
         {openDelete && <DeleteModal title={selectedRoom?.name ?? ""} onClose={() => setOpenDelete(false)} onConfirm={handleDeleteRoom} />}
         {openRoomSettings && <SettingsModal room={selectedRoom} onClose={() => setOpenRoomSettings(false)} onSave={handleUpdateRoom} />}
-
-        {/*--------------- PETITION MODAL STACK -----------------*/}
-
 
       </main>
     </div>

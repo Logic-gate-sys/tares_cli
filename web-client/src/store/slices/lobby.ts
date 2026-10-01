@@ -74,8 +74,6 @@ export const lobbySlice = createSlice({
 
 
 
-
-
 export const {
   changeShowMsgStatus, changeSocketStatus, setAvailableRooms, pushToLobby, connectSocket,
   addRoom,updateRoom, removeRoom, addRequest, addMessage, updateRequests } = lobbySlice.actions;

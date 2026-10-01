@@ -1,7 +1,7 @@
 
 export type Room = {
   id: string;
-  ownerId?: string;
+  ownerId?: number;
   name: string;
   capacity: number; 
   status?: 'online'|'offline'|'playing'|'waiting'

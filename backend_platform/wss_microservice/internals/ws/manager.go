@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/wss_service/internals/engine"
@@ -90,66 +91,7 @@ func (rm *roomManager) Run() {
 		// if an event is sent to lobby
 		case action := <-rm.lobbyInbound:
 			switch action.Action.Action {
-			case events.CreateRoom:
-				{
-					var payload struct {
-						Name string `json:"name"`
-					}
-					err := json.Unmarshal(action.Action.Value, &payload)
-					// if room id is not valid
-					if payload.Name == "" {
-						break
-					}
-					ctx := context.Background()
-					room, err := rm.roomStore.GetRoomByName(ctx, payload.Name)
-					if err != nil {
-						log.Println("Error(wss): ", err.Error())
-						break
-					}
-
-					log.Printf("Room to clients: %v", room)
-					for client, _ := range rm.lobbyClients {
-						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-							Which:   events.NewRoom,
-							Data:    room,
-							Message: "New room created",
-						}
-					}
-				}
-
-			// when a user updates their room;
-			case events.UpdateRoom:
-				{
-					var payload struct {
-						Name string `json:"name"`
-					}
-					err := json.Unmarshal(action.Action.Value, &payload)
-					// if room id is not valid
-					if payload.Name == "" {
-						break
-					}
-					ctx := context.Background()
-					room, err := rm.roomStore.GetRoomByName(ctx, payload.Name)
-					if err != nil {
-						log.Println("Error(wss): ", err.Error())
-						break
-					}
-
-					log.Printf("(updated)Room to clients: %v", room)
-					for client, _ := range rm.lobbyClients {
-						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-							Which:   events.UpdatedRoom,
-							Data:    room,
-							Message: "Updated room",
-						}
-					}
-				}
-
-				// incase user wants to join an available room
-				//  Sent message to room owner of the join request
-				// wait for the owner to resolve request or fail request after x-minutes waiting
-
-			// when room join request is sent
+			// room creation, updating and deleting are handled outside websocket, in api routes
 			case events.JoinRoom:
 				var payload struct {
 					RoomId string `json:"roomId"`
@@ -167,19 +109,27 @@ func (rm *roomManager) Run() {
 				if parseErr != nil {
 					break
 				}
+				// join room-owner into his room without further approval
 				if action.Client.userId == int32(ownerID) {
 					if err := rm.joinRoom(action.Client, room); err != nil {
 						log.Println("Owner failed to join room:", err)
+						action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+							Which: events.JoinResponse,
+							Data:  map[string]any{"accepted": false, "message": err.Error()},
+						}
+						
+						break
 					}
-					log.Println("<<:::Owner joined his/her room")
+					log.Println("<<:::Owner joined his room")
 					break
 				}
 				stats, err := rm.grpcClient.GetUserStats(context.Background(), action.Client.userId)
 				if err != nil {
+					// inform client their request did not go through
 					log.Println("Failed to load requester stats:", err)
 					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
-						Data:  map[string]any{"accepted": false, "reason": "Player statistics are temporarily unavailable"},
+						Data:  map[string]any{"accepted": false, "reason": "Invalid request parameters"},
 					}
 					break
 				}
@@ -198,7 +148,6 @@ func (rm *roomManager) Run() {
 						Ping:     action.Client.Ping(),
 					},
 				}
-				// TODO: This may not be needed , but have to determine
 				rm.pendingJoins[petition.ID] = &pendingJoin{
 					requester: action.Client,
 					roomID:    payload.RoomId,
@@ -214,7 +163,7 @@ func (rm *roomManager) Run() {
 						break
 					}
 				}
-				
+
 			case events.ResolveJoin:
 				var payload struct {
 					RequestID string `json:"requestId"`
@@ -228,7 +177,7 @@ func (rm *roomManager) Run() {
 					break
 				}
 				delete(rm.pendingJoins, payload.RequestID)
-				// if resolved action is to deny requestor 
+				// if resolved action is to deny requestor
 				if !payload.Accepted {
 					pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
@@ -240,32 +189,30 @@ func (rm *roomManager) Run() {
 				if err != nil {
 					break
 				}
+				// admit requestor in room
 				if err := rm.joinRoom(pending.requester, room); err != nil {
 					pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
-						Data:  map[string]any{"accepted": false, "message": "Could not find requested room"},
+						Data:  map[string]any{"accepted": false, "message": err.Error()},
 					}
 					break
 				}
-
-				// else end success response to requestor
-				pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
-					Which: events.JoinResponse,
-					Data: map[string]any{
-						"accepted": true, 
-						"room":room, 
-						"message": fmt.Sprintf("Success!, welcome to game room: %s",room.Name)},
-				}
+				// remove user from lobby after resolving and admitting him into requested room
+				delete(rm.lobbyClients, pending.requester)
 			}
 		}
 	}
 }
 
+// Joins succeful user to requested room
 func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
+	//  if room is full and it's not null
 	if room.Capacity > 0 && rm.rooms[room.ID] != nil && len(rm.rooms[room.ID].Clients) >= room.Capacity {
 		return fmt.Errorf("room is full")
 	}
+
 	playerRoom := rm.rooms[room.ID]
+	// if player room is not in-memory, create and run it's engine once
 	if playerRoom == nil {
 		ownerID, err := strconv.Atoi(room.OwnerId)
 		if err != nil {
@@ -273,8 +220,13 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
 		}
 		playerRoom = &PlayerRoom{
 			Room: store.CreateRoom{
-				Id: room.ID, OwnerId: ownerID, Name: room.Name, Capacity: room.Capacity,
-				Status: store.Status(room.Status), Icon: room.Icon, IconBgClass: room.IconBgClass,
+				Id:                 room.ID,
+				OwnerId:            ownerID,
+				Name:               room.Name,
+				Capacity:           room.Capacity,
+				Status:             store.Status(room.Status),
+				Icon:               room.Icon,
+				IconBgClass:        room.IconBgClass,
 				IconTextColorClass: room.IconTextColorClass,
 			},
 			Timer:          timer.GameClock{},
@@ -288,15 +240,24 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) error {
 			stopGame:       make(chan bool),
 			pauseGame:      make(chan bool),
 		}
+
 		rm.rooms[room.ID] = playerRoom
 		go playerRoom.Run()
 	}
+
 	c.room = playerRoom
+	// The manager owns room membership changes in its event loop.
+	// Sending to playerRoom.join here would deadlock: PlayerRoom.Run sends
+	// lobbyLeave back to this loop while this call is still blocked.
 	playerRoom.Clients[c] = true
-	delete(rm.lobbyClients, c)
+
+	//broadcast to client
 	c.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 		Which: events.JoinResponse,
-		Data:  map[string]any{"accepted": true, "room": room},
+		Data: map[string]any{
+			"accepted": true,
+			"room":     room,
+			"message":  fmt.Sprintf("Success!, welcome to game room: %s", room.Name)},
 	}
 	return nil
 }

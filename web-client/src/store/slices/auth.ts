@@ -11,7 +11,7 @@ export interface AuthState {
     username?: string;
     p_level?: string;
     bio?: string;
-    wins: number;
+    wins: number; // holds ration of wins/total games played
     rank: string;
     accuracy: number;
     total_score?: number;

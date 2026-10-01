@@ -1,4 +1,4 @@
-import { pgTable, bytea, serial, varchar, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, bytea, serial, varchar, text, integer,doublePrecision, timestamp } from 'drizzle-orm/pg-core';
 
 //Users entity
 export const Users = pgTable('users', {
@@ -10,7 +10,7 @@ export const Users = pgTable('users', {
   rank: varchar('rank', { length: 50 }).default('unranked').notNull(),
   bio: text('bio').default('').notNull(),
   totalScore: integer('total_score').default(0).notNull(),
-  wins: integer('wins').default(0).notNull(),
+  wins: doublePrecision('wins').default(0.0).notNull(),
   accuracy: integer('accuracy').default(0).notNull(),
   avatarUrl: text('avatar_url').default('').notNull(),
   bgClass: varchar('bg_class', { length: 250 }).default('').notNull(),

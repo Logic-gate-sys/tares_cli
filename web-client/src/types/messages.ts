@@ -4,8 +4,7 @@ import type { Room, Request } from "./entities"
 
 // Client --> Server Message format
 export type ClientMessage =
-  | {
-    type: `in:lobby`, payload:
+  | {type: `in:lobby`, payload:
     | { action: 'room:create', value: { name: string } } // sends message to socket
     | { action: 'room:update', value: { name: string } }
     | { action: 'request:room:join', value: { roomId?: string } }

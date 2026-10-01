@@ -1,0 +1,1 @@
+ALTER TABLE "users" ALTER COLUMN "wins" SET DATA TYPE double precision USING "wins"::double precision;

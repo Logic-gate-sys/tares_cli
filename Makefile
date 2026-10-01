@@ -13,7 +13,9 @@ help:
 		'  make test          Run backend and client tests' \
 		'  make clean         Remove generated build artifacts'\
 		'  make proto-go      Generate go protobuf in wss_microservice stub'\
-		'  make wss_go_tidy   Tidy go mods '
+		'  make wss_go_tidy   Tidy go mods ' \
+		'  make user_db_generate  Generate SQL schema ' \
+		'  make user_db_migrate   Migrates SQL schema to DB'
 
 install:
 	cd backend_platform/user_microservice && npm ci --legacy-peer-deps
@@ -48,6 +50,11 @@ test-wss:
 clean:
 	rm -rf web-client/dist backend_platform/wss_microservice/tmp
 
+# user_microservice migrations and sql generation
+user_db_generate:
+	cd backend_platform/user_microservice && npm run db:generate 
+user_db_migrate:
+	cd backend_platform/user_microservice && npm run db:migrate
 
 # gRPC
 proto-go:
