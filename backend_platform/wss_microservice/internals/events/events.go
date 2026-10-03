@@ -18,6 +18,7 @@ const (
 type GameRoomAction string
 
 const (
+	StartGame  GameRoomAction = "owner:start:game"
 	SendWord   GameRoomAction = "SEND_WORD"
 	PauseGame  GameRoomAction = "PAUSE_GAME"
 	StopGame   GameRoomAction = "STOP_GAME"
@@ -44,17 +45,6 @@ type Player struct {
 	Token    string `json:"token"`
 }
 
-// State broacast is sent to clients
-type GameStateBroadcast struct {
-	RoomId        string         `json:"room_id"`
-	Round         int            `json:"round"`
-	Status        Status         `json:"status"`         // e.g., "WAITING", "PLAYING", "PAUSED"
-	TimeLeft      int            `json:"time_left"`      // Countdown timer in seconds
-	ScrambledWord string         `json:"scrambled_word"` // What players try to solve
-	Scores        map[string]int `json:"scores"`         // Track username -> score mapping`
-	Message       string         `json:"message"`
-	Data          interface{}    `json:"data"` // any optional data supplied in broadcast
-}
 type Which string
 
 const (
@@ -63,21 +53,44 @@ const (
 	UpdatedRoom         Which = "rooms:update"
 	IncomingJoinRequest Which = "incoming:join:request"
 	JoinResponse        Which = "rooms:join:response"
+	// game states broadcasts and actions types
+	GameStarted     Which = "owner:starts:game"
+	NewClientJoined Which = "room:new:client-joined"
+	ToJoinedClient  Which = "room:to:joined-client"
+	ClientLeft      Which = "room:client:left"
 )
 
 type LobbyStateBroadcast struct {
-	Which   Which       `json:"which"`
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
+	Which   Which  `json:"which"`
+	Data    any    `json:"data"`
+	Message string `json:"message"`
+}
+
+type GameStateBroadcast struct {
+	Which   Which  `json:"which"`
+	Data    any    `json:"data"` // classicall inteface{}
+	Message string `json:"message"`
+}
+
+type GameStateData struct {
+	RoomId        string         `json:"roomId"`
+	Round         int            `json:"round"`
+	Status        Status         `json:"status"`
+	TimeLeft      int            `json:"timeLeft"`
+	ScrambledWord string         `json:"scrambledWord"`
+	Scores        map[string]int `json:"scores"`
 }
 
 type Status string
 
 const (
-	Playing Status = "PLAYING"
-	Waiting Status = "WAITING"
-	Pause   Status = "PAUSED"
-	Stopped Status = "STOPPED"
+	Playing   Status = "PLAYING"
+	Waiting   Status = "WAITING"
+	Countdown Status = "COUNTDOWN"
+	RoundOver Status = "ROUND_OVER"
+	Finished  Status = "FINISHED"
+	Pause     Status = "PAUSED"
+	Stopped   Status = "STOPPED"
 )
 
 type message string
@@ -115,4 +128,3 @@ type PetitionRequest struct {
 	Status         string         `json:"status"`
 	CreatedAt      time.Time      `json:"createdAt"` // keep when it's generated and get time ago in frontend
 }
-

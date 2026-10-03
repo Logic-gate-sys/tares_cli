@@ -1,6 +1,6 @@
 import { type Middleware } from "@reduxjs/toolkit";
 import { addMessage, addRequest, addRoom,updateRoom, changeSocketStatus, lobbySlice, removeRoom, setAvailableRooms } from "./slices/lobby"
-import { changeStatus, gameSlice, setRoom } from "./slices/arena";
+import { applyGameState, changeStatus, gameSlice, setRoom} from "./slices/arena";
 import type {  ServerMessage } from "#types/messages";
 import type { Room, Request } from "#types/entities";
 
@@ -53,6 +53,7 @@ export const socketMiddleware = (): Middleware => {
               if (accepted && room) {
                 store.dispatch(setRoom(room));
                 store.dispatch(changeStatus("room:in"));
+                store.dispatch(applyGameState({ gameState: "WAITING", message: "Waiting for the room owner to start the game" }));
               } else {
                 store.dispatch(changeStatus("room:out"))
                 store.dispatch(addMessage(message?? "Room join request rejected"));
@@ -65,9 +66,37 @@ export const socketMiddleware = (): Middleware => {
               break;
             }
             break;
-
+          
+        // handling ingame events 
           case "in:game":
-            console.log("In game message", res.payload.data);
+            switch (res.payload.which) {
+              case "room:new:client-joined":
+                break;
+              
+              case "room:to:joined-client":
+                store.dispatch(applyGameState({
+                  gameState: res.payload.data.status,
+                  round: { roundNo: res.payload.data.round },
+                  timer: res.payload.data.timeLeft,
+                  scramble: res.payload.data.scrambledWord,
+                  scores: res.payload.data.scores,
+                  message: res.payload.message,
+                }));
+                break;
+              case "room:client:left":
+                break;
+              
+              case "owner:starts:game":
+                store.dispatch(applyGameState({
+                  gameState: "COUNTDOWN",
+                  timer: res.payload.data.timer,
+                  message: res.payload.message,
+                }));
+                break;
+
+              default:
+                break;
+            }
             break;
 
           default:
@@ -85,7 +114,7 @@ export const socketMiddleware = (): Middleware => {
         socket.send(JSON.stringify(action.payload))
       };
       //  in-game client messages
-    } else if (gameSlice.actions.sendWord.match(action)) {
+    } else if (gameSlice.actions.pushToGameRoom.match(action)) {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(action.payload))
       }

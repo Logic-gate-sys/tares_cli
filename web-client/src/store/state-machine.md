@@ -1,4 +1,15 @@
 # Game State (Socket interaction)
+
+After a player enters a room, the room owner sends an `in:game` message with
+`action: "owner:start:game"`. The WSS service validates ownership and broadcasts
+the authoritative game state to every room client:
+
+`WAITING -> COUNTDOWN -> PLAYING -> ROUND_OVER -> COUNTDOWN -> PLAYING ... -> FINISHED`
+
+There are exactly three rounds. Each round has a three-second countdown and a
+60-second playing window. Clients render `round`, `time_left`, `status`,
+`scrambled_word`, and `scores` from the server event; they must not run a
+separate timer. Non-owners see the same state but cannot start the game.
 2. GameSocket(verifies and connect an authenticated user to lobby socket)
 3. User finds online rooms(game rooms) and requests to join
 4. All members receives the request via server socket

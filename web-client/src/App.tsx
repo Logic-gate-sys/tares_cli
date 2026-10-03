@@ -3,6 +3,7 @@ import { AuthGate, NotFound, Home, Lobby, Arena, GameLobbyGate, ArenaGate, HomeL
 import { Provider } from "react-redux";
 import { store } from "#store/store";
 import { UIProvider } from "./context/uiContext";
+import { GlobalStats } from "#pages/globalStats";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Routes>
             <Route element={<HomeLayout />}>
               <Route path="/" element={<Home />} />
+              <Route path="/global-stats" element={<GlobalStats/> } />
             </Route>
             <Route element={<AuthGate />}>
               <Route element={<GameLobbyGate />}>

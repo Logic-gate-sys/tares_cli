@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '#store/store';
+import { pushToGameRoom } from '#store/slices/arena';
 import { LiveFeed, GameplayArena, SuccessToast } from '#components/game/arena'
 import { PlayerStats } from '#components/player/stats';
 
@@ -6,6 +9,9 @@ import { PlayerStats } from '#components/player/stats';
 
 
 export function Arena() {
+  const dispatch = useDispatch();
+  const { room, gameState, timer, round, message, scramble } = useSelector((state: RootState) => state.arena);
+  const { user } = useSelector((state: RootState) => state.auth);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Apply body classes on mount if not handled globally in index.html
@@ -29,7 +35,24 @@ export function Arena() {
         </div>
 
         <LiveFeed />
-        <GameplayArena onSuccess={handleSuccess} />
+        <GameplayArena
+          onSuccess={handleSuccess}
+          isOwner={room?.ownerId !== undefined && user?.id !== undefined && String(room.ownerId) === String(user.id)}
+          status={gameState ?? 'WAITING'}
+          timeLeft={timer}
+          round={round?.roundNo}
+          message={message}
+          scramble={scramble}
+          onStart={() => dispatch(pushToGameRoom({ type: 'in:game', payload: { action: 'owner:start:game', value: {} } }))}
+          onPause={() => dispatch(pushToGameRoom({
+            type: 'in:game',
+            payload: {
+              action: gameState === 'PAUSED' ? 'RESUME_GAME' : 'PAUSE_GAME',
+              value: {},
+            },
+          }))}
+          onSubmit={(word) => dispatch(pushToGameRoom({ type: 'in:game', payload: { action: 'SEND_WORD', value: { word } } }))}
+        />
         <PlayerStats />
       </main>
       <SuccessToast isVisible={showSuccessToast} />

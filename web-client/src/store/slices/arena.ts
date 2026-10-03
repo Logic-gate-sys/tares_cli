@@ -1,24 +1,23 @@
 import type { Room } from "#types/entities";
+import type { ClientMessage } from "#types/messages";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 
 export type GameState = {
-  status: "room:out" | "room:in" | "idle" | "round-started" | "round-playing" | "round-over" | "error";
+  status: "room:out" | "room:in" | "idle"; // socket connection status
+  gameState?:  "WAITING" | "COUNTDOWN" | "PLAYING" | "ROUND_OVER" | "FINISHED" | "PAUSED" | "error";
   room?: Room; // users active room
-  roomId: string;   // user's active room
-  scores: unknown[]; // ingame scores arranged in order
-  players: unknown[];
+  scores: Record<string, number>; // participants active scores 
   scramble?: string; // what user is to scramble
   word?: string; // word user wants to submit
-  round?: { roundNo?: number, winnerId?: string };// current round
-  timer?: number; // active timer
+  round?: { roundNo?: number, winner?: string };
+  timer?: number;
+  message?: string;
 }
 
 const initGameState: GameState = {
   status: "idle",
-  roomId: "",
-  scores: [],
-  players: []
+  scores: {},
 }
 
 export const gameSlice = createSlice({
@@ -32,28 +31,27 @@ export const gameSlice = createSlice({
     changeStatus: (state, action: PayloadAction<GameState['status']>) => {
       state.status = action.payload;
     },
-    setRoomId: (state, action: PayloadAction<GameState['roomId']>) => {
-      state.roomId = action.payload;
-    },
     setRoom: (state, action: PayloadAction<GameState['room']>) => {
       state.room = action.payload;
     },
-
+    setGameState: (state, action: PayloadAction<GameState['gameState']>) => {
+      state.gameState = action.payload;
+    },
     setTimer: (state, action: PayloadAction<GameState['timer']>) => {
       state.timer = action.payload;
     },
     setRound: (state, action: PayloadAction<GameState['round']>) => {
       state.round = action.payload;
     },
-    setPlayers: (state, action: PayloadAction<GameState['players']>) => {
-      state.players = action.payload;
-    },
     setScores: (state, action: PayloadAction<GameState['scores']>) => {
       state.scores = action.payload;
     },
-    sendWord: (state, action: PayloadAction<GameState['word']>) => { }
+    applyGameState: (state, action: PayloadAction<Partial<GameState>>) => {
+      Object.assign(state, action.payload);
+    },
+    pushToGameRoom: (_state, _action: PayloadAction<ClientMessage>) => { }, // handles all clinet --> server messages sending
   }
 })
 
-export const { setScramble, changeStatus, setRoom, setRoomId, setTimer, setRound, setPlayers, setScores, sendWord } = gameSlice.actions;
+export const { setScramble, changeStatus,setGameState, setRoom, setTimer, setRound, setScores, applyGameState, pushToGameRoom} = gameSlice.actions;
 export default gameSlice.reducer;

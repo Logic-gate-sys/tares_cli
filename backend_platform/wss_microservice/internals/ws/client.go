@@ -3,16 +3,18 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/logic-gate-sys/wss_service/internals/events"
+	"strconv"
 	"sync/atomic"
 	"time"
+	"github.com/gorilla/websocket"
+	"github.com/logic-gate-sys/wss_service/internals/events"
 )
+
 
 // Holds the state of any connected device (e.g browser, terminal) at any time
 type client struct {
 	name                 string // connect client's name
-	userId               int32
+	UserId               int32
 	socket               *websocket.Conn // socket connection by which the client communicates over the network
 	inLobbyToClientEvent chan events.LobbyStateBroadcast
 	inGameToClientEvent  chan events.GameStateBroadcast //messages going from server to client
@@ -28,19 +30,21 @@ func (c *client) Ping() int {
 
 // Take message in clients inbound channel and shovel it down to connected client sockect connection e.g browser
 func (c *client) writeToClientPump() {
-	defer func() {
-		c.socket.Close()
-	}()
+	// set up ticker channel
 	ticker := time.NewTicker(10 * time.Second)
+	defer c.socket.Close()
 	defer ticker.Stop()
+	
 	// sent all inbound events through socket
 	for {
 		select {
 		case <-ticker.C:
 			c.pingStartedAt.Store(time.Now().UnixNano())
-			if err := c.socket.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second)); err != nil {
+			if err := c.socket.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second)); 
+			 err != nil {
 				return
 			}
+			
 		case event, ok := <-c.inGameToClientEvent:
 			// if manager closed in game to client channel
 			if !ok {
@@ -116,8 +120,8 @@ func (c *client) readFromClientPump() {
 				fmt.Printf("Reader failed abnormally for client %s: %v\n", c.name, err)
 				return
 			}
-			// CRITICAL FIX: You must explicitly unregister the client from the room/manager here!
-			// Otherwise, the channels will leak or writeToClientPump will panic on a closed socket.
+			// BUG: unregister the client is done from the room/manager 
+			// to prevent channels leak or writeToClientPump will panic on a closed socket.
 			c.manager.lobbyLeave <- c
 			return
 		}
@@ -147,6 +151,12 @@ func (c *client) readFromClientPump() {
 			var ingameMsg events.IngameUserAction
 			if err := json.Unmarshal(msg.RawJson, &ingameMsg); err != nil {
 				c.socket.WriteJSON(map[string]string{"error": err.Error()})
+				continue
+			}
+			ingameMsg.User = &events.Player{Id: strconv.Itoa(int(c.UserId)), Username: c.name}
+			if c.room == nil {
+				c.socket.WriteJSON(map[string]string{"error": "You are not in a game room"})
+				continue
 			}
 			// put on ingame action
 			c.room.inboundEvents <- ingameMsg

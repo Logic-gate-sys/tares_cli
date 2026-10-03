@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/wss_service/internals/engine"
@@ -110,7 +109,7 @@ func (rm *roomManager) Run() {
 					break
 				}
 				// join room-owner into his room without further approval
-				if action.Client.userId == int32(ownerID) {
+				if action.Client.UserId == int32(ownerID) {
 					err, playerRoom := rm.joinRoom(action.Client, room)
 					if err != nil {
 						log.Println("Owner failed to join room:", err)
@@ -125,7 +124,7 @@ func (rm *roomManager) Run() {
 					playerRoom.join <- action.Client
 					break
 				}
-				stats, err := rm.grpcClient.GetUserStats(context.Background(), action.Client.userId)
+				stats, err := rm.grpcClient.GetUserStats(context.Background(), action.Client.UserId)
 				if err != nil {
 					// inform client their request did not go through
 					log.Println("Failed to load requester stats:", err)
@@ -139,7 +138,7 @@ func (rm *roomManager) Run() {
 				petition := events.PetitionRequest{
 					ID:             uuid.New().String(),
 					RoomID:         payload.RoomId,
-					RequesterID:    int(action.Client.userId),
+					RequesterID:    int(action.Client.UserId),
 					PetitionNumber: fmt.Sprintf("Req:%s", uuid.New()),
 					CreatedAt:      time.Now(),
 					PlayerName:     stats.Name,
@@ -156,7 +155,7 @@ func (rm *roomManager) Run() {
 					ownerID:   ownerID,
 				}
 				for client := range rm.lobbyClients {
-					if client.userId == int32(ownerID) {
+					if client.UserId == int32(ownerID) {
 						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 							Which:   events.IncomingJoinRequest,
 							Data:    petition,
@@ -248,6 +247,7 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) (error, *Pl
 		rm.rooms[room.ID] = playerRoom
 		go playerRoom.Run()
 	}
+	c.room = playerRoom
 	//broadcast to client
 	c.inLobbyToClientEvent <- events.LobbyStateBroadcast{
 		Which: events.JoinResponse,
@@ -281,7 +281,7 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 	// Create client from authenticated user
 	client := &client{
 		name:                 user.Username,
-		userId:               int32(user.ID),
+		UserId:               int32(user.ID),
 		socket:               socket,
 		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast),
 		manager:              rm,

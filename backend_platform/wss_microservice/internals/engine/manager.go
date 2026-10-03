@@ -65,30 +65,35 @@ func ScoreWord(word string, diff Difficulty) (float32, error) {
 
 // This returns the game state at any time couting in seconds
 func (g *Game) Tick(state *events.GameStateBroadcast) (events.GameStateBroadcast, bool) {
+	data, ok := state.Data.(events.GameStateData)
+	if !ok {
+		data = events.GameStateData{
+			RoomId: g.ActiveRoom.ID,
+			Scores: g.ActiveRoom.Scores,
+		}
+	}
 	// if time is greater than 0 , decrement
-	if state.TimeLeft > 0 {
-		state.TimeLeft--
+	if data.TimeLeft > 0 {
+		data.TimeLeft--
 	}
 	// if time is less or equals 0
-	if state.TimeLeft <= 0 {
+	if data.TimeLeft <= 0 {
 		// Rule evaluation: Time is up!
 		return events.GameStateBroadcast{
-			RoomId:        state.RoomId,
-			Round:         state.Round,
-			Status:        events.Stopped,
-			TimeLeft:      state.TimeLeft,
-			ScrambledWord: state.ScrambledWord,
-			Scores:        state.Scores,
+			Which: events.ToJoinedClient,
+			Data: events.GameStateData{
+				RoomId: data.RoomId, Round: data.Round, Status: events.Stopped,
+				TimeLeft: data.TimeLeft, ScrambledWord: data.ScrambledWord, Scores: data.Scores,
+			},
 		}, true // Signal that the round is over
 	}
 	// time up
 	return events.GameStateBroadcast{
-		RoomId:        state.RoomId,
-		Round:         state.Round,
-		Status:        events.Stopped,
-		TimeLeft:      state.TimeLeft,
-		ScrambledWord: state.ScrambledWord,
-		Scores:        state.Scores,
+		Which: events.ToJoinedClient,
+		Data: events.GameStateData{
+			RoomId: data.RoomId, Round: data.Round, Status: events.Playing,
+			TimeLeft: data.TimeLeft, ScrambledWord: data.ScrambledWord, Scores: data.Scores,
+		},
 	}, false // Signal that the round is over
 }
 
@@ -109,9 +114,12 @@ func (g *Game) GenerateStatsReport() events.GameStateBroadcast {
 
 	// create a struct of status report
 	return events.GameStateBroadcast{
-		RoomId: g.ActiveRoom.ID,
-		Status: "IN_PROGRESS",
-		Scores: g.ActiveRoom.Scores,
+		Which: events.ToJoinedClient,
+		Data: events.GameStateData{
+			RoomId: g.ActiveRoom.ID,
+			Status: events.Playing,
+			Scores: g.ActiveRoom.Scores,
+		},
 	}
 
 }
@@ -128,13 +136,15 @@ func (g *Game) Run(state *events.GameStateBroadcast, broadcastChan chan<- events
 			broadcastPayload, isRoundOver := g.Tick(state)
 			// if round is over
 			if isRoundOver {
-				state.Round++
-				state.TimeLeft = int(g.Duration.Seconds())
+				data := state.Data.(events.GameStateData)
+				data.Round++
+				data.TimeLeft = int(g.Duration.Seconds())
+				state.Data = data
 				g.ActiveRoom.UsedWords = make(map[string]string)
 			}
 			g.mux.Unlock()
 
-			if broadcastPayload.Scores != nil {
+			if broadcastPayload.Data != nil {
 				broadcastChan <- broadcastPayload
 			}
 
