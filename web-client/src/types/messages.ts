@@ -24,9 +24,8 @@ export type ClientMessage =
   // in game messages
   | {
     type: 'in:game', payload:
-      | { action: 'owner:start:game', value: Record<string, never> }
-      | { action: 'PAUSE_GAME' | 'RESUME_GAME', value: Record<string, never> }
-      | { action: 'SEND_WORD', value: { word: string } }
+    | { action: 'START_GAME' | 'PAUSE_GAME' | 'RESUME_GAME', value: { userId: number } }
+    | { action: 'SEND_WORD', value: { word: string } }
   }
 
 // Server --> Client Message format

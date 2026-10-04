@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/wss_service/internals/engine"
@@ -73,11 +74,12 @@ func (rm *roomManager) Run() {
 			if err != nil {
 				return
 			}
-			client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+			event := events.LobbyStateBroadcast{
 				Which:   events.AvailableRooms,
 				Data:    rooms,
 				Message: "Current online rooms available",
 			}
+			rm.broadCastLobbyEventToClientNB(client, event)
 			log.Printf("Client: %s joined lobby", client.name)
 
 		// TODO: Find a way to ensure room owner client is last to leave lobby(
@@ -113,25 +115,27 @@ func (rm *roomManager) Run() {
 					err, playerRoom := rm.joinRoom(action.Client, room)
 					if err != nil {
 						log.Println("Owner failed to join room:", err)
-						action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+						event := events.LobbyStateBroadcast{
 							Which: events.JoinResponse,
 							Data:  map[string]any{"accepted": false, "message": err.Error()},
 						}
-
+						rm.broadCastLobbyEventToClientNB(action.Client, event)
 						break
 					}
-					// put client on gameRoom's channel;
+					// put owner on gameRoom's join channel;
 					playerRoom.join <- action.Client
 					break
 				}
+
 				stats, err := rm.grpcClient.GetUserStats(context.Background(), action.Client.UserId)
 				if err != nil {
 					// inform client their request did not go through
 					log.Println("Failed to load requester stats:", err)
-					action.Client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+					event := events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
 						Data:  map[string]any{"accepted": false, "reason": "Invalid request parameters"},
 					}
+					rm.broadCastLobbyEventToClientNB(action.Client, event)
 					break
 				}
 				// compute request details to send to room:0wner
@@ -156,11 +160,12 @@ func (rm *roomManager) Run() {
 				}
 				for client := range rm.lobbyClients {
 					if client.UserId == int32(ownerID) {
-						client.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+						event := events.LobbyStateBroadcast{
 							Which:   events.IncomingJoinRequest,
 							Data:    petition,
 							Message: "A player is requesting to join your room",
 						}
+						rm.broadCastLobbyEventToClientNB(client, event)
 						break
 					}
 				}
@@ -180,10 +185,11 @@ func (rm *roomManager) Run() {
 				delete(rm.pendingJoins, payload.RequestID)
 				// if resolved action is to deny requestor
 				if !payload.Accepted {
-					pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+					event := events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
 						Data:  map[string]any{"accepted": false, "message": "Room owner rejected the request"},
 					}
+					rm.broadCastLobbyEventToClientNB(pending.requester, event)
 					break
 				}
 				room, err := rm.roomStore.GetRoomById(context.Background(), pending.roomID)
@@ -193,14 +199,17 @@ func (rm *roomManager) Run() {
 				// admit requestor in room
 				err, playerRoom := rm.joinRoom(pending.requester, room)
 				if err != nil {
-					pending.requester.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+					event := events.LobbyStateBroadcast{
 						Which: events.JoinResponse,
 						Data:  map[string]any{"accepted": false, "message": err.Error()},
 					}
+					rm.broadCastLobbyEventToClientNB(pending.requester, event)
 					break
 				}
-				// remove user from lobby after resolving and admitting him into requested room
+				// remove requester from lobby and put him in playerRoom.
 				delete(rm.lobbyClients, pending.requester)
+				// BUG: closed channel presenting problem
+				// close(pending.requester.inLobbyToClientEvent)
 				// put accepted requester on join channel
 				playerRoom.join <- pending.requester
 			}
@@ -247,15 +256,17 @@ func (rm *roomManager) joinRoom(c *client, room store.RoomViewModel) (error, *Pl
 		rm.rooms[room.ID] = playerRoom
 		go playerRoom.Run()
 	}
+	// assign client game room
 	c.room = playerRoom
 	//broadcast to client
-	c.inLobbyToClientEvent <- events.LobbyStateBroadcast{
+	event := events.LobbyStateBroadcast{
 		Which: events.JoinResponse,
 		Data: map[string]any{
 			"accepted": true,
 			"room":     room,
 			"message":  fmt.Sprintf("Success!, welcome to game room: %s", room.Name)},
 	}
+	rm.broadCastLobbyEventToClientNB(c, event)
 	return nil, playerRoom
 }
 
@@ -267,6 +278,17 @@ var upgrader = &websocket.Upgrader{
 	ReadBufferSize:  socketBufferSize,
 	WriteBufferSize: socketBufferSize,
 	CheckOrigin:     func(r *http.Request) bool { return true }, // CORS
+}
+
+// Broadcasts lobby event to a connected client non-blockingly.
+// Tries to send the event immediately. If inLobbyToClientEvent chan is full (or if no receiver is listening on the unbuffered channel),
+// Go jumps straight to the default block without pausing execution
+func (rm *roomManager) broadCastLobbyEventToClientNB(c *client, event events.LobbyStateBroadcast) {
+	select {
+	case c.inLobbyToClientEvent <- event:
+	default:
+		log.Printf("Unable to broadcast to this client: %s", c.name)
+	}
 }
 
 // upgrade http request into a websocket connection
@@ -283,7 +305,8 @@ func (rm *roomManager) HandleWS(w http.ResponseWriter, r *http.Request) {
 		name:                 user.Username,
 		UserId:               int32(user.ID),
 		socket:               socket,
-		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast),
+		inLobbyToClientEvent: make(chan events.LobbyStateBroadcast, 10),
+		inGameToClientEvent:  make(chan events.GameStateBroadcast, 10),
 		manager:              rm,
 	}
 	// run room & put client on lobbyJoin chan

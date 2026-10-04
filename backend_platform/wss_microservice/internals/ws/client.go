@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/wss_service/internals/events"
 )
-
 
 // Holds the state of any connected device (e.g browser, terminal) at any time
 type client struct {
@@ -34,21 +34,20 @@ func (c *client) writeToClientPump() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer c.socket.Close()
 	defer ticker.Stop()
-	
+
 	// sent all inbound events through socket
 	for {
 		select {
 		case <-ticker.C:
 			c.pingStartedAt.Store(time.Now().UnixNano())
-			if err := c.socket.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second)); 
-			 err != nil {
+			if err := c.socket.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second)); err != nil {
 				return
 			}
-			
+
 		case event, ok := <-c.inGameToClientEvent:
 			// if manager closed in game to client channel
 			if !ok {
-				return
+				break
 			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
@@ -72,12 +71,12 @@ func (c *client) writeToClientPump() {
 		case event, ok := <-c.inLobbyToClientEvent:
 			// if manager closes lobby To client channel
 			if !ok {
-				return
+				break
 			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
 				fmt.Println("failed to marshal json")
-				return
+				break
 			}
 			msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonEvnt}
 			// attempt writting to client
@@ -99,9 +98,8 @@ func (c *client) writeToClientPump() {
 
 // Read message from client e.g browser, sent it to inBoundEvents channel of room
 func (c *client) readFromClientPump() {
-	defer func() {
-		c.socket.Close()
-	}()
+	defer c.socket.Close()
+
 	c.socket.SetPongHandler(func(string) error {
 		startedAt := c.pingStartedAt.Load()
 		if startedAt > 0 {
@@ -109,6 +107,7 @@ func (c *client) readFromClientPump() {
 		}
 		return nil
 	})
+
 	for {
 		//blocks until a message arrives
 		messageType, reader, err := c.socket.NextReader()
@@ -120,8 +119,7 @@ func (c *client) readFromClientPump() {
 				fmt.Printf("Reader failed abnormally for client %s: %v\n", c.name, err)
 				return
 			}
-			// BUG: unregister the client is done from the room/manager 
-			// to prevent channels leak or writeToClientPump will panic on a closed socket.
+
 			c.manager.lobbyLeave <- c
 			return
 		}

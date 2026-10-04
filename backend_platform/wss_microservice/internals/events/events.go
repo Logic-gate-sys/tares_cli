@@ -18,7 +18,7 @@ const (
 type GameRoomAction string
 
 const (
-	StartGame  GameRoomAction = "owner:start:game"
+	StartGame  GameRoomAction = "START_GAME"
 	SendWord   GameRoomAction = "SEND_WORD"
 	PauseGame  GameRoomAction = "PAUSE_GAME"
 	StopGame   GameRoomAction = "STOP_GAME"

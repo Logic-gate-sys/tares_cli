@@ -43,12 +43,12 @@ export function Arena() {
           round={round?.roundNo}
           message={message}
           scramble={scramble}
-          onStart={() => dispatch(pushToGameRoom({ type: 'in:game', payload: { action: 'owner:start:game', value: {} } }))}
+          onStart={() => dispatch(pushToGameRoom({type: 'in:game', payload: { action: 'START_GAME', value: {userId: user.id} } }))}
           onPause={() => dispatch(pushToGameRoom({
             type: 'in:game',
             payload: {
-              action: gameState === 'PAUSED' ? 'RESUME_GAME' : 'PAUSE_GAME',
-              value: {},
+              action: gameState === 'PAUSED' ? 'RESUME_GAME' : 'PAUSE_GAME' ,
+              value: {userId: user.id},
             },
           }))}
           onSubmit={(word) => dispatch(pushToGameRoom({ type: 'in:game', payload: { action: 'SEND_WORD', value: { word } } }))}

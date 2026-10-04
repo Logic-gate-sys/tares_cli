@@ -23,10 +23,10 @@ export const socketMiddleware = (): Middleware => {
       // messages from server socket ---> client
       socket.addEventListener("message", (event) => {
         const res = JSON.parse(event.data) as ServerMessage;
+        console.log("MESSAGE: ", res.payload)
         switch (res.type) {
           case 'in:lobby':
             if (res.payload.which === "available:rooms") {
-              console.log("ROOMS(WSS): ", res.payload.data)
               store.dispatch(setAvailableRooms(res.payload.data as Room[]))
               break;
             }
@@ -49,7 +49,6 @@ export const socketMiddleware = (): Middleware => {
             // join response could produce a rejection/acceptance
             if (res.payload.which === "rooms:join:response") {
               const {accepted, message, room} = res.payload.data;
-              console.log("JOIN RESPONSE: ", {accepted, message, room})
               if (accepted && room) {
                 store.dispatch(setRoom(room));
                 store.dispatch(changeStatus("room:in"));
@@ -71,9 +70,11 @@ export const socketMiddleware = (): Middleware => {
           case "in:game":
             switch (res.payload.which) {
               case "room:new:client-joined":
+                store.dispatch(applyGameState(res.payload))
                 break;
               
-              case "room:to:joined-client":
+              case "room:to:joined-client": 
+                console.log("TO JOINED CLIENT EVENT")                
                 store.dispatch(applyGameState({
                   gameState: res.payload.data.status,
                   round: { roundNo: res.payload.data.round },
@@ -83,6 +84,8 @@ export const socketMiddleware = (): Middleware => {
                   message: res.payload.message,
                 }));
                 break;
+
+              // when client left room notify players and update player records in real-time
               case "room:client:left":
                 break;
               

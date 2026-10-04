@@ -1,13 +1,14 @@
 package ws
 
 import (
-	"log"
-	"strconv"
-	"time"
+	"fmt"
 	"github.com/logic-gate-sys/wss_service/internals/engine"
 	"github.com/logic-gate-sys/wss_service/internals/events"
 	"github.com/logic-gate-sys/wss_service/internals/store"
 	"github.com/logic-gate-sys/wss_service/internals/timer"
+	"log"
+	"strconv"
+	"time"
 )
 
 const (
@@ -30,7 +31,7 @@ type PlayerRoom struct {
 	Room    store.CreateRoom `json:"room"`
 	Timer   timer.GameClock  `json:"timer"`
 	Clients map[*client]bool `json:"clients"`
-
+	// inbound room event
 	inboundEvents  chan events.IngameUserAction
 	outBoundEvents chan events.GameStateBroadcast
 	join           chan *client
@@ -61,48 +62,55 @@ func (pr *PlayerRoom) Run() {
 				pr.status = events.Waiting
 			}
 			log.Printf("Client: %s joined Game-Room: %s", c.name, pr.Room.Name)
-
-			c.inGameToClientEvent <- events.GameStateBroadcast{
+			event := events.GameStateBroadcast{
 				Which: events.ToJoinedClient,
 				Data: events.GameStateData{
 					RoomId: pr.Room.Id, Round: pr.round, Status: pr.status,
 					TimeLeft: pr.timeLeft, Scores: map[string]int{},
 				},
-				Message: "You're in arena, wait for game start to be initiated...",
+				Message: "You're in arena! Awaiting game start...",
 			}
+			// non blocking broadcast to client
+			pr.broadCastGameStateToClientNB(c, event)
+
 			for client := range pr.Clients {
 				if client.UserId != c.UserId {
-					client.inGameToClientEvent <- events.GameStateBroadcast{
+					event := events.GameStateBroadcast{
 						Which:   events.NewClientJoined,
 						Data:    map[string]string{"name": c.name},
 						Message: "New client joined room",
 					}
+					pr.broadCastGameStateToClientNB(client, event)
 				}
 			}
 
-		// when a client leaves arena
+		// when a client leaves arena put then in lobby
 		case c := <-pr.leave:
 			for client := range pr.Clients {
 				if client.UserId != c.UserId {
-					client.inGameToClientEvent <- events.GameStateBroadcast{
+					event := events.GameStateBroadcast{
 						Which:   events.ClientLeft,
 						Data:    map[string]string{"name": c.name},
 						Message: "Client left room",
 					}
+					pr.broadCastGameStateToClientNB(client, event)
 				}
 			}
 			delete(pr.Clients, c)
+			close(c.inGameToClientEvent)
+			c.manager.lobbyJoin <- c
 			log.Printf("Client left Game-Room: %s for lobby", pr.Room.Name)
 
 		// when any event arrives in arena
 		case action := <-pr.inboundEvents:
 			switch action.Action {
 			case events.StartGame:
+				fmt.Println(":::::::: OWNER PROMPTS TO START GAME ::::::::::::")
 				if action.User == nil || action.User.Id != strconv.Itoa(pr.Room.OwnerId) {
 					if action.User != nil {
 						for client := range pr.Clients {
 							if strconv.Itoa(int(client.UserId)) == action.User.Id {
-								client.inGameToClientEvent <- events.GameStateBroadcast{
+								event := events.GameStateBroadcast{
 									Which: events.ToJoinedClient,
 									Data: events.GameStateData{
 										RoomId: pr.Room.Id, Round: pr.round,
@@ -111,6 +119,7 @@ func (pr *PlayerRoom) Run() {
 									},
 									Message: "Only the room owner can start the game",
 								}
+								pr.broadCastGameStateToClientNB(client, event)
 							}
 						}
 					}
@@ -119,7 +128,7 @@ func (pr *PlayerRoom) Run() {
 				if pr.started {
 					for client := range pr.Clients {
 						if strconv.Itoa(int(client.UserId)) == action.User.Id {
-							client.inGameToClientEvent <- events.GameStateBroadcast{
+							event := events.GameStateBroadcast{
 								Which: events.ToJoinedClient,
 								Data: events.GameStateData{
 									RoomId: pr.Room.Id, Round: pr.round,
@@ -128,6 +137,7 @@ func (pr *PlayerRoom) Run() {
 								},
 								Message: "The game has already started",
 							}
+							pr.broadCastGameStateToClientNB(client, event)
 						}
 					}
 					continue
@@ -137,11 +147,12 @@ func (pr *PlayerRoom) Run() {
 				pr.status = events.Countdown
 				pr.timeLeft = countdownSeconds
 				for client := range pr.Clients {
-					client.inGameToClientEvent <- events.GameStateBroadcast{
+					event := events.GameStateBroadcast{
 						Which:   events.GameStarted,
 						Data:    map[string]int{"timer": pr.timeLeft},
 						Message: "Game starting",
 					}
+					pr.broadCastGameStateToClientNB(client, event)
 				}
 
 			case events.PauseGame, events.ResumeGame:
@@ -155,7 +166,7 @@ func (pr *PlayerRoom) Run() {
 					pr.status = events.Playing
 				}
 				for client := range pr.Clients {
-					client.inGameToClientEvent <- events.GameStateBroadcast{
+					event := events.GameStateBroadcast{
 						Which: events.ToJoinedClient,
 						Data: events.GameStateData{
 							RoomId: pr.Room.Id, Round: pr.round,
@@ -164,12 +175,13 @@ func (pr *PlayerRoom) Run() {
 						},
 						Message: "Game state updated",
 					}
+					pr.broadCastGameStateToClientNB(client, event)
 				}
 
 			case events.SendWord:
 				if pr.status == events.Playing {
 					for client := range pr.Clients {
-						client.inGameToClientEvent <- events.GameStateBroadcast{
+						event := events.GameStateBroadcast{
 							Which: events.ToJoinedClient,
 							Data: events.GameStateData{
 								RoomId: pr.Room.Id, Round: pr.round,
@@ -178,7 +190,9 @@ func (pr *PlayerRoom) Run() {
 							},
 							Message: "Word received",
 						}
+						pr.broadCastGameStateToClientNB(client, event)
 					}
+
 				}
 			case events.StopGame:
 				return
@@ -211,7 +225,7 @@ func (pr *PlayerRoom) Run() {
 				}
 			}
 			for client := range pr.Clients {
-				client.inGameToClientEvent <- events.GameStateBroadcast{
+				event := events.GameStateBroadcast{
 					Which: events.ToJoinedClient,
 					Data: events.GameStateData{
 						RoomId: pr.Room.Id, Round: pr.round,
@@ -220,7 +234,20 @@ func (pr *PlayerRoom) Run() {
 					},
 					Message: "Game state updated",
 				}
+				pr.broadCastGameStateToClientNB(client, event)
 			}
 		}
+	}
+}
+
+// Broadcasts game state to a connected client non-blockingly.
+// Tries to send the event immediately. If inGameToClientEvent chan is full (or if no receiver is listening on the unbuffered channel),
+// Go jumps straight to the default block without pausing execution
+func (pr *PlayerRoom) broadCastGameStateToClientNB(c *client, event events.GameStateBroadcast) {
+	select {
+	case c.inGameToClientEvent <- event:
+
+	default:
+		log.Printf("Dropping game event for client %s", c.name)
 	}
 }
