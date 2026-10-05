@@ -30,6 +30,12 @@ func SetupRoute(app *app.Application) *chi.Mux {
 	}))
 	roomManager := ws.NewRoomManager(app.RoomHandler.RoomStore, app.GrpcClient)
 
+	// developer docs
+	router.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
+		http.ServeFile(w, r, "openapi.yaml")
+	})
+
 	// protected routes
 	router.Group(func(r chi.Router) {
 		// authenticate all routes here

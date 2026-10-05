@@ -2,13 +2,14 @@ package ws
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"time"
+
 	"github.com/logic-gate-sys/wss_service/internals/engine"
 	"github.com/logic-gate-sys/wss_service/internals/events"
 	"github.com/logic-gate-sys/wss_service/internals/store"
 	"github.com/logic-gate-sys/wss_service/internals/timer"
-	"log"
-	"strconv"
-	"time"
 )
 
 const (
@@ -41,10 +42,11 @@ type PlayerRoom struct {
 	stopGame       chan bool
 	pauseGame      chan bool
 
-	status   events.Status
-	round    int
-	timeLeft int
-	started  bool
+	status     events.Status
+	round      int
+	timeLeft   int
+	started    bool
+	pausedFrom events.Status
 }
 
 // Run is the core loop for messages delivery via channel/clients.
@@ -63,11 +65,8 @@ func (pr *PlayerRoom) Run() {
 			}
 			log.Printf("Client: %s joined Game-Room: %s", c.name, pr.Room.Name)
 			event := events.GameStateBroadcast{
-				Which: events.ToJoinedClient,
-				Data: events.GameStateData{
-					RoomId: pr.Room.Id, Round: pr.round, Status: pr.status,
-					TimeLeft: pr.timeLeft, Scores: map[string]int{},
-				},
+				Which:   events.ToJoinedClient,
+				Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 				Message: "You're in arena! Awaiting game start...",
 			}
 			// non blocking broadcast to client
@@ -97,26 +96,20 @@ func (pr *PlayerRoom) Run() {
 				}
 			}
 			delete(pr.Clients, c)
-			close(c.inGameToClientEvent)
-			c.manager.lobbyJoin <- c
-			log.Printf("Client left Game-Room: %s for lobby", pr.Room.Name)
+			c.room = nil
+			log.Printf("Client left Game-Room: %s", pr.Room.Name)
 
 		// when any event arrives in arena
 		case action := <-pr.inboundEvents:
 			switch action.Action {
 			case events.StartGame:
-				fmt.Println(":::::::: OWNER PROMPTS TO START GAME ::::::::::::")
 				if action.User == nil || action.User.Id != strconv.Itoa(pr.Room.OwnerId) {
 					if action.User != nil {
 						for client := range pr.Clients {
 							if strconv.Itoa(int(client.UserId)) == action.User.Id {
 								event := events.GameStateBroadcast{
-									Which: events.ToJoinedClient,
-									Data: events.GameStateData{
-										RoomId: pr.Room.Id, Round: pr.round,
-										Status: pr.status, TimeLeft: pr.timeLeft,
-										Scores: map[string]int{},
-									},
+									Which:   events.ToJoinedClient,
+									Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 									Message: "Only the room owner can start the game",
 								}
 								pr.broadCastGameStateToClientNB(client, event)
@@ -129,12 +122,8 @@ func (pr *PlayerRoom) Run() {
 					for client := range pr.Clients {
 						if strconv.Itoa(int(client.UserId)) == action.User.Id {
 							event := events.GameStateBroadcast{
-								Which: events.ToJoinedClient,
-								Data: events.GameStateData{
-									RoomId: pr.Room.Id, Round: pr.round,
-									Status: pr.status, TimeLeft: pr.timeLeft,
-									Scores: map[string]int{},
-								},
+								Which:   events.ToJoinedClient,
+								Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 								Message: "The game has already started",
 							}
 							pr.broadCastGameStateToClientNB(client, event)
@@ -146,10 +135,16 @@ func (pr *PlayerRoom) Run() {
 				pr.round = 1
 				pr.status = events.Countdown
 				pr.timeLeft = countdownSeconds
+				_, err := pr.gameEngine.StartRound()
+				if err != nil {
+					log.Printf("Failed to generate game word for room %s: %v", pr.Room.Id, err)
+					pr.started = false
+					continue
+				}
 				for client := range pr.Clients {
 					event := events.GameStateBroadcast{
 						Which:   events.GameStarted,
-						Data:    map[string]int{"timer": pr.timeLeft},
+						Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 						Message: "Game starting",
 					}
 					pr.broadCastGameStateToClientNB(client, event)
@@ -161,33 +156,58 @@ func (pr *PlayerRoom) Run() {
 				}
 				if action.Action == events.PauseGame && pr.started &&
 					pr.status != events.Finished && pr.status != events.Pause {
+					pr.pausedFrom = pr.status
 					pr.status = events.Pause
 				} else if action.Action == events.ResumeGame && pr.status == events.Pause {
-					pr.status = events.Playing
+					pr.status = pr.pausedFrom
 				}
 				for client := range pr.Clients {
 					event := events.GameStateBroadcast{
-						Which: events.ToJoinedClient,
-						Data: events.GameStateData{
-							RoomId: pr.Room.Id, Round: pr.round,
-							Status: pr.status, TimeLeft: pr.timeLeft,
-							Scores: map[string]int{},
-						},
+						Which:   events.ToJoinedClient,
+						Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 						Message: "Game state updated",
 					}
 					pr.broadCastGameStateToClientNB(client, event)
 				}
 
 			case events.SendWord:
-				if pr.status == events.Playing {
+				if pr.status == events.Playing && action.User != nil {
+					word, ok := action.Value["word"].(string)
+					if !ok {
+						continue
+					}
+					difficulty := engine.Easy
+					switch pr.round {
+					case 2:
+						difficulty = engine.Medium
+					case 3:
+						difficulty = engine.Hard
+					}
+					score, err := pr.gameEngine.ScoreSubmission(action.User.Id, word, difficulty)
+					if err != nil {
+						log.Printf("Failed to score word in room %s: %v", pr.Room.Id, err)
+						continue
+					}
+					if score == 0 {
+						continue
+					}
 					for client := range pr.Clients {
 						event := events.GameStateBroadcast{
-							Which: events.ToJoinedClient,
-							Data: events.GameStateData{
-								RoomId: pr.Room.Id, Round: pr.round,
-								Status: pr.status, TimeLeft: pr.timeLeft,
-								Scores: map[string]int{},
+							Which: events.WordSubmitted,
+							Data: map[string]any{
+								"name":  action.User.Username,
+								"word":  word,
+								"score": int(score),
+								"state": pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 							},
+							Message: fmt.Sprintf("%s unscrambled %s", action.User.Username, word),
+						}
+						pr.broadCastGameStateToClientNB(client, event)
+					}
+					for client := range pr.Clients {
+						event := events.GameStateBroadcast{
+							Which:   events.ToJoinedClient,
+							Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 							Message: "Word received",
 						}
 						pr.broadCastGameStateToClientNB(client, event)
@@ -222,16 +242,16 @@ func (pr *PlayerRoom) Run() {
 					pr.round++
 					pr.status = events.Countdown
 					pr.timeLeft = countdownSeconds
+					if _, err := pr.gameEngine.StartRound(); err != nil {
+						log.Printf("Failed to generate round %d word for room %s: %v", pr.round, pr.Room.Id, err)
+						pr.status = events.Finished
+					}
 				}
 			}
 			for client := range pr.Clients {
 				event := events.GameStateBroadcast{
-					Which: events.ToJoinedClient,
-					Data: events.GameStateData{
-						RoomId: pr.Room.Id, Round: pr.round,
-						Status: pr.status, TimeLeft: pr.timeLeft,
-						Scores: map[string]int{},
-					},
+					Which:   events.ToJoinedClient,
+					Data:    pr.gameEngine.CurrentGameData(pr.Room.Id, pr.round, pr.status, pr.timeLeft),
 					Message: "Game state updated",
 				}
 				pr.broadCastGameStateToClientNB(client, event)

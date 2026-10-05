@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: WSS Service API
+  version: 1.0.0
+  description: |
+    HTTP + WebSocket gateway for room lifecycle and real-time game play.
+
+    ## Authentication
+    Every protected route accepts:
+    - `Authorization: Bearer <jwt>`
+    - or `?token=<jwt>` query parameter (especially useful for WebSocket handshake)
+
+    ## Transport model
+    - HTTP routes manage room persistence.
+    - `GET /ws` upgrades to WebSocket for lobby and in-game events.
+    - WebSocket frames use a common envelope:
+      `{ "type": "in:lobby" | "in:game", "payload": ... }`
+
+servers:
+  - url: http://localhost:8081
+    description: Local development
+
+tags:
+  - name: Docs
+  - name: Rooms
+  - name: WebSocket
+
+paths:
+  /openapi.yaml:
+    get:
+      tags: [Docs]
+      summary: Fetch OpenAPI spec
+      description: Serves this specification file for developer tooling.
+      responses:
+        "200":
+          description: OpenAPI YAML
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /rooms:
+    get:
+      tags: [Rooms]
+      summary: List rooms
+      description: Returns all available rooms in descending creation order.
+      security:
+        - bearerAuth: []
+        - queryToken: []
+      responses:
+        "200":
+          description: Rooms found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomViewModel"
+        "400":
+          description: Failed to fetch rooms
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags: [Rooms]
+      summary: Create room
+      security:
+        - bearerAuth: []
+        - queryToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+            examples:
+              default:
+                value:
+                  name: "Word Blitz"
+                  capacity: 8
+                  icon: "sports_esports"
+                  iconBgClass: "bg-yellow-300"
+                  iconTextColorClass: "text-deep-ink"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomViewModel"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{id}:
+    patch:
+      tags: [Rooms]
+      summary: Update room
+      security:
+        - bearerAuth: []
+        - queryToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Room UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoomRequest"
+            examples:
+              default:
+                value:
+                  name: "Word Blitz Pro"
+                  capacity: 10
+                  icon: "bolt"
+                  status: "online"
+      responses:
+        "200":
+          description: Room updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomViewModel"
+        "400":
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to update room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Rooms]
+      summary: Delete room
+      security:
+        - bearerAuth: []
+        - queryToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Room UUID
+      responses:
+        "200":
+          description: Room deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteSuccessResponse"
+        "400":
+          description: Invalid room id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteSuccessResponse"
+        "401":
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to delete room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteSuccessResponse"
+
+  /ws:
+    get:
+      tags: [WebSocket]
+      summary: Upgrade to realtime socket
+      description: |
+        Upgrades the connection to WebSocket and handles both lobby and game traffic.
+
+        **Client -> Server frame envelope**
+        - `type`: `"in:lobby"` or `"in:game"`
+        - `payload`: action/value object
+
+        **Lobby actions**
+        - `request:room:join`
+        - `room:join:resolve`
+
+        **Game actions**
+        - `START_GAME`
+        - `PAUSE_GAME`
+        - `RESUME_GAME`
+        - `SEND_WORD`
+      security:
+        - bearerAuth: []
+        - queryToken: []
+      parameters:
+        - in: query
+          name: token
+          required: false
+          schema:
+            type: string
+          description: JWT token when header auth is unavailable.
+      responses:
+        "101":
+          description: Switching Protocols (WebSocket upgrade successful)
+        "401":
+          description: Missing or invalid auth
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    queryToken:
+      type: apiKey
+      in: query
+      name: token
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    DeleteSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
+
+    CreateRoomRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        capacity:
+          type: integer
+          minimum: 1
+        icon:
+          type: string
+        iconBgClass:
+          type: string
+        iconTextColorClass:
+          type: string
+      required: [name, capacity, icon, iconBgClass, iconTextColorClass]
+
+    UpdateRoomRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        capacity:
+          type: integer
+          minimum: 1
+        icon:
+          type: string
+        status:
+          type: string
+          enum: [waiting, playing, online, offline]
+      required: [name, capacity, icon, status]
+
+    RoomViewModel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+        name:
+          type: string
+        capacity:
+          type: integer
+        status:
+          type: string
+        icon:
+          type: string
+        iconBgClass:
+          type: string
+        iconTextColorClass:
+          type: string
+        players:
+          type: integer
+        playersText:
+          type: string
+        timeLeftText:
+          type: string
+        avatars:
+          type: array
+          items: {}
+        extraPlayersCount:
+          type: integer
+      required:
+        - id
+        - ownerId
+        - name
+        - capacity
+        - status
+        - icon
+        - iconBgClass
+        - iconTextColorClass
+        - players
+        - playersText
+        - avatars
+        - extraPlayersCount
+
+    WebSocketInboundEnvelope:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [in:lobby, in:game]
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/LobbyInboundAction"
+            - $ref: "#/components/schemas/GameInboundAction"
+      required: [type, payload]
+
+    LobbyInboundAction:
+      oneOf:
+        - type: object
+          properties:
+            action:
+              type: string
+              enum: [request:room:join]
+            value:
+              type: object
+              properties:
+                roomId:
+                  type: string
+              required: [roomId]
+          required: [action, value]
+        - type: object
+          properties:
+            action:
+              type: string
+              enum: [room:join:resolve]
+            value:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                accepted:
+                  type: boolean
+              required: [requestId, accepted]
+          required: [action, value]
+
+    GameInboundAction:
+      oneOf:
+        - type: object
+          properties:
+            action:
+              type: string
+              enum: [START_GAME, PAUSE_GAME, RESUME_GAME]
+            value:
+              type: object
+              additionalProperties:
+                type: integer
+        wordCounts:
+              type: object
+              additionalProperties: true
+          required: [action, value]
+        - type: object
+          properties:
+            action:
+              type: string
+              enum: [SEND_WORD]
+            value:
+              type: object
+              properties:
+                word:
+                  type: string
+              required: [word]
+          required: [action, value]
+
+    WebSocketOutboundEnvelope:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [in:lobby, in:game]
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/LobbyBroadcast"
+            - $ref: "#/components/schemas/GameBroadcast"
+      required: [type, payload]
+
+    LobbyBroadcast:
+      type: object
+      properties:
+        which:
+          type: string
+          enum:
+            - available:rooms
+            - rooms:new
+            - rooms:update
+            - incoming:join:request
+            - rooms:join:response
+        data: {}
+        message:
+          type: string
+      required: [which, data]
+
+    GameBroadcast:
+      type: object
+      properties:
+        which:
+          type: string
+          enum:
+            - owner:starts:game
+            - room:new:client-joined
+            - room:to:joined-client
+            - room:client:left
+            - room:word-submitted
+        data: {}
+        message:
+          type: string
+      required: [which, data]

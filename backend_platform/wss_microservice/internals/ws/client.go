@@ -34,9 +34,14 @@ func (c *client) writeToClientPump() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer c.socket.Close()
 	defer ticker.Stop()
+	lobbyEvents := c.inLobbyToClientEvent
+	gameEvents := c.inGameToClientEvent
 
 	// sent all inbound events through socket
 	for {
+		if lobbyEvents == nil && gameEvents == nil {
+			return
+		}
 		select {
 		case <-ticker.C:
 			c.pingStartedAt.Store(time.Now().UnixNano())
@@ -44,10 +49,11 @@ func (c *client) writeToClientPump() {
 				return
 			}
 
-		case event, ok := <-c.inGameToClientEvent:
+		case event, ok := <-gameEvents:
 			// if manager closed in game to client channel
 			if !ok {
-				break
+				gameEvents = nil
+				continue
 			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
@@ -68,15 +74,16 @@ func (c *client) writeToClientPump() {
 			writer.Close()
 
 		// in a lobby broadcast comes in
-		case event, ok := <-c.inLobbyToClientEvent:
+		case event, ok := <-lobbyEvents:
 			// if manager closes lobby To client channel
 			if !ok {
-				break
+				lobbyEvents = nil
+				continue
 			}
 			jsonEvnt, err := json.Marshal(&event)
 			if err != nil {
 				fmt.Println("failed to marshal json")
-				break
+				continue
 			}
 			msg := events.RawMessage{MsgType: events.Inlobby, RawJson: jsonEvnt}
 			// attempt writting to client
@@ -117,9 +124,10 @@ func (c *client) readFromClientPump() {
 				fmt.Printf("Client %s cleanly disconnected or connection dropped by StrictMode.\n", c.name)
 			} else {
 				fmt.Printf("Reader failed abnormally for client %s: %v\n", c.name, err)
-				return
 			}
-
+			if c.room != nil {
+				c.room.leave <- c
+			}
 			c.manager.lobbyLeave <- c
 			return
 		}

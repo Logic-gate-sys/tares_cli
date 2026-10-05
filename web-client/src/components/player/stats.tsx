@@ -1,4 +1,9 @@
-export  function PlayerStats() {
+export function PlayerStats({ score = 0, rank = 0, words = 0, totalWords = 0 }: {
+  score?: number;
+  rank?: number;
+  words?: number;
+  totalWords?: number;
+}) {
   return (
     <aside className="md:col-span-3 space-y-md">
       {/* Current Stats */}
@@ -10,15 +15,15 @@ export  function PlayerStats() {
         <div className="p-md space-y-sm">
           <div className="flex justify-between border-b-2 border-deep-ink/10 pb-xs">
             <span className="text-label-mono font-label-mono uppercase opacity-60">Score</span>
-            <span className="font-headline-md text-xl">12,450</span>
+            <span className="font-headline-md text-xl">{score}</span>
           </div>
           <div className="flex justify-between border-b-2 border-deep-ink/10 pb-xs">
             <span className="text-label-mono font-label-mono uppercase opacity-60">Rank</span>
-            <span className="font-headline-md text-xl text-primary">#14</span>
+            <span className="font-headline-md text-xl text-primary">{rank > 0 ? `#${rank}` : '--'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-label-mono font-label-mono uppercase opacity-60">Words</span>
-            <span className="font-headline-md text-xl">18/25</span>
+            <span className="font-headline-md text-xl">{words}/{totalWords}</span>
           </div>
         </div>
       </div>

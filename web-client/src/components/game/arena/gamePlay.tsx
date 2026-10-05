@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 interface GameplayArenaProps {
-  onSuccess: () => void;
   isOwner: boolean;
   status: string;
   timeLeft?: number;
@@ -13,14 +12,12 @@ interface GameplayArenaProps {
   onSubmit: (word: string) => void;
 }
 
-export const GameplayArena = ({ onSuccess, isOwner, status, timeLeft = 0, round = 0, message, scramble, onStart, onPause, onSubmit }: GameplayArenaProps) => {
+export const GameplayArena = ({ isOwner, status, timeLeft = 0, round = 0, message, scramble, onStart, onPause, onSubmit }: GameplayArenaProps) => {
   const [inputValue, setInputValue] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-
-    if (value.toUpperCase() === 'ROUND') onSuccess();
   };
 
   const formatTime = (time: number) => {
@@ -75,8 +72,8 @@ export const GameplayArena = ({ onSuccess, isOwner, status, timeLeft = 0, round 
       </div>
 
       {/* The Scrambled Word */}
-      <div className="w-full flex flex-wrap justify-center gap-sm md:gap-md py-xl min-h-40 items-center">
-        {(scramble || 'OUDNR').split('').map((letter, index) => (
+      <div className="w-full flex flex-wrap justify-center gap-sm md:gap-sm py-xl min-h-40 items-center">
+        {(scramble||'------').split('').map((letter, index) => (
           <LetterTile key={`${letter}-${index}`} letter={letter} delay={`${index / 10}s`} />
         ))}
       </div>
@@ -88,9 +85,10 @@ export const GameplayArena = ({ onSuccess, isOwner, status, timeLeft = 0, round 
           type="text"
           value={inputValue}
           required
+          disabled={status !== 'PLAYING'}
           onChange={handleInputChange}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' && status === 'PLAYING') {
               onSubmit(inputValue);
               setInputValue('');
             }
@@ -98,7 +96,7 @@ export const GameplayArena = ({ onSuccess, isOwner, status, timeLeft = 0, round 
           placeholder="TYPE YOUR ANSWER..."
           className="w-full bg-paper-white border-4 border-deep-ink px-lg py-xl font-headline-md text-headline-md uppercase placeholder:opacity-20 focus:outline-none focus:border-action-red neubrutal-shadow transition-all group-active:translate-x-1 group-active:translate-y-1 group-active:shadow-none"
         />
-        <button type="button" onClick={() => { onSubmit(inputValue); setInputValue(''); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-action-red text-paper-white border-2 border-deep-ink px-md py-sm font-label-bold text-label-bold neubrutal-shadow-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all active:scale-95">
+        <button type="button" disabled={status !== 'PLAYING'} onClick={() => { onSubmit(inputValue); setInputValue(''); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-action-red text-paper-white border-2 border-deep-ink px-md py-sm font-label-bold text-label-bold neubrutal-shadow-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
           SUBMIT
         </button>
       </div>

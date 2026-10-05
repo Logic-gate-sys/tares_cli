@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/logic-gate-sys/wss_service/internals/engine"
@@ -208,8 +207,6 @@ func (rm *roomManager) Run() {
 				}
 				// remove requester from lobby and put him in playerRoom.
 				delete(rm.lobbyClients, pending.requester)
-				// BUG: closed channel presenting problem
-				// close(pending.requester.inLobbyToClientEvent)
 				// put accepted requester on join channel
 				playerRoom.join <- pending.requester
 			}

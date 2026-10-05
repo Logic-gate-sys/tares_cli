@@ -1,14 +1,15 @@
 // All messages format of communication: client ---> go server
 // Messages format reflects how communications are supposed to be initiated and carry on
 import type { Room, Request } from "./entities"
-export type ServerGameState = {
+
+export type GameStatePayload = {
   roomId: string;
   round: number;
   status: "WAITING" | "COUNTDOWN" | "PLAYING" | "ROUND_OVER" | "FINISHED" | "PAUSED";
   timeLeft: number;
   scrambledWord: string;
   scores: Record<string, number>;
-  message: string;
+  wordCounts: Record<string, number>;
 };
 
 // Client --> Server Message format
@@ -43,9 +44,20 @@ export type ServerMessage =
     type: 'in:game', payload:
     | {
       which: 'room:to:joined-client',
-      data: ServerGameState, message: string
+      data: GameStatePayload,
+      message?: string
     }
     | { which: 'room:client:left', data: { name: string, message: string } }
-    | { which: 'room:new:client-joined', data: { name: string, message: string } }
-    | { which: 'owner:starts:game', data: { timer: number }, message?: string }
+    | { which: 'room:new:client-joined', data: { name: string, cumlativeScore: 0 } }
+    | {
+      which: 'room:word-submitted',
+      data: {
+        name: string;
+        word: string;
+        score: number;
+        state: GameStatePayload;
+      };
+      message?: string;
+    }
+    | { which: 'owner:starts:game', data: GameStatePayload, message?: string }
   }

@@ -3,6 +3,7 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,7 +29,14 @@ func ValidateWord(word string, fileName string) (bool, error) {
 	}
 	// close file eventually
 	defer file.Close()
+	return validateWordReader(word, file)
+}
 
+func ValidateWordContent(word string, content []byte) (bool, error) {
+	return validateWordReader(word, strings.NewReader(string(content)))
+}
+
+func validateWordReader(word string, reader io.Reader) (bool, error) {
 	// channels for cordiantion
 	jobs := make(chan string, 100) // streams text to all workers
 	found := make(chan bool, 1)    // signifies word found or not
@@ -67,7 +75,7 @@ func ValidateWord(word string, fileName string) (bool, error) {
 
 	// stream text from file into job channel
 	go func() {
-		scanner := bufio.NewScanner(file)
+		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			select {
 			case <-quit:

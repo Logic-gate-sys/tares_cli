@@ -1,6 +1,6 @@
 import { type Middleware } from "@reduxjs/toolkit";
 import { addMessage, addRequest, addRoom,updateRoom, changeSocketStatus, lobbySlice, removeRoom, setAvailableRooms } from "./slices/lobby"
-import { applyGameState, changeStatus, gameSlice, setRoom} from "./slices/arena";
+import { addLiveFeed, applyGameState, gameSlice, setPlayers} from "./slices/arena";
 import type {  ServerMessage } from "#types/messages";
 import type { Room, Request } from "#types/entities";
 
@@ -18,12 +18,10 @@ export const socketMiddleware = (): Middleware => {
       socket.addEventListener("error", () => store.dispatch(changeSocketStatus('error')));
 
       if (!socket) return;
-      // on open
       socket.addEventListener("open", () => { store.dispatch(changeSocketStatus("connected")) });
-      // messages from server socket ---> client
+      // messages from server socket --> client
       socket.addEventListener("message", (event) => {
         const res = JSON.parse(event.data) as ServerMessage;
-        console.log("MESSAGE: ", res.payload)
         switch (res.type) {
           case 'in:lobby':
             if (res.payload.which === "available:rooms") {
@@ -50,11 +48,11 @@ export const socketMiddleware = (): Middleware => {
             if (res.payload.which === "rooms:join:response") {
               const {accepted, message, room} = res.payload.data;
               if (accepted && room) {
-                store.dispatch(setRoom(room));
-                store.dispatch(changeStatus("room:in"));
+                store.dispatch(applyGameState({room: room}));
+                store.dispatch(applyGameState({ status: "room:in"}));
                 store.dispatch(applyGameState({ gameState: "WAITING", message: "Waiting for the room owner to start the game" }));
               } else {
-                store.dispatch(changeStatus("room:out"))
+                store.dispatch(applyGameState({ status: "room:out" }))
                 store.dispatch(addMessage(message?? "Room join request rejected"));
               }
               break;
@@ -69,20 +67,35 @@ export const socketMiddleware = (): Middleware => {
         // handling ingame events 
           case "in:game":
             switch (res.payload.which) {
+              // new client joined, add their details to live updates data
               case "room:new:client-joined":
-                store.dispatch(applyGameState(res.payload))
+                store.dispatch(setPlayers(res.payload.data));
                 break;
               
               case "room:to:joined-client": 
-                console.log("TO JOINED CLIENT EVENT")                
                 store.dispatch(applyGameState({
-                  gameState: res.payload.data.status,
-                  round: { roundNo: res.payload.data.round },
+                  gameState: res.payload.data.status as "WAITING" | "COUNTDOWN" | "PLAYING" | "ROUND_OVER" | "FINISHED" | "PAUSED",
                   timer: res.payload.data.timeLeft,
-                  scramble: res.payload.data.scrambledWord,
+                  round: { roundNo: res.payload.data.round },
+                  scramble: res.payload.data.scrambledWord ?? "",
                   scores: res.payload.data.scores,
+                  wordCounts: res.payload.data.wordCounts,
                   message: res.payload.message,
                 }));
+                break;
+
+              case "room:word-submitted":
+                store.dispatch(addLiveFeed({
+                  user: res.payload.data.name,
+                  word: res.payload.data.word,
+                  score: res.payload.data.score,
+                }));
+                if (res.payload.data.state) {
+                  store.dispatch(applyGameState({
+                    scores: res.payload.data.state.scores,
+                    wordCounts: res.payload.data.state.wordCounts,
+                  }));
+                }
                 break;
 
               // when client left room notify players and update player records in real-time
@@ -91,8 +104,12 @@ export const socketMiddleware = (): Middleware => {
               
               case "owner:starts:game":
                 store.dispatch(applyGameState({
-                  gameState: "COUNTDOWN",
-                  timer: res.payload.data.timer,
+                  gameState: res.payload.data.status,
+                  timer: res.payload.data.timeLeft,
+                  round: { roundNo: res.payload.data.round },
+                  scramble: res.payload.data.scrambledWord ?? "",
+                  scores: res.payload.data.scores,
+                  wordCounts: res.payload.data.wordCounts,
                   message: res.payload.message,
                 }));
                 break;
@@ -106,7 +123,6 @@ export const socketMiddleware = (): Middleware => {
             break;
         }
       });
-
       // closing socket
       socket.addEventListener("close", () => { store.dispatch(changeSocketStatus('disconnected')) });
     };

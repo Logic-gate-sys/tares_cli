@@ -9,13 +9,15 @@ import (
 
 // structs and interfaces
 type Game struct {
-	ID         int
-	Players    []Player
-	Letters    []LetterSet
-	ActiveRoom ActiveRoom
-	Duration   time.Duration
-	mux        sync.Mutex // controls data changes efficiently
-	state      events.GameStateBroadcast
+	ID            int
+	Players       []Player
+	Letters       []LetterSet
+	ActiveRoom    ActiveRoom
+	Duration      time.Duration
+	mux           sync.Mutex // controls data changes efficiently
+	state         events.GameStateBroadcast
+	CurrentWord   string
+	ScrambledWord string
 }
 
 type Player struct {
@@ -32,14 +34,15 @@ type LetterSet struct {
 
 // ActiveRoom
 type ActiveRoom struct {
-	ID        string `json:"id"`
-	Players   []*Player
-	LetterSet *LetterSet
-	UsedWords map[string]string // word → name
-	Scores    map[string]int    // name → their current score
-	StartedAt time.Time         `json:"started_at"`
-	Done      chan struct{}
-	mu        sync.Mutex
+	ID         string `json:"id"`
+	Players    []*Player
+	LetterSet  *LetterSet
+	UsedWords  map[string]string // word → name
+	Scores     map[string]int    // name → their current score
+	WordCounts map[string]int    // player id → accepted submissions
+	StartedAt  time.Time         `json:"started_at"`
+	Done       chan struct{}
+	mu         sync.Mutex
 }
 
 // game difficulty

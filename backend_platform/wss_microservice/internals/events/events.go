@@ -58,6 +58,7 @@ const (
 	NewClientJoined Which = "room:new:client-joined"
 	ToJoinedClient  Which = "room:to:joined-client"
 	ClientLeft      Which = "room:client:left"
+	WordSubmitted   Which = "room:word-submitted"
 )
 
 type LobbyStateBroadcast struct {
@@ -79,6 +80,7 @@ type GameStateData struct {
 	TimeLeft      int            `json:"timeLeft"`
 	ScrambledWord string         `json:"scrambledWord"`
 	Scores        map[string]int `json:"scores"`
+	WordCounts    map[string]int `json:"wordCounts"`
 }
 
 type Status string
